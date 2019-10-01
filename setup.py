@@ -25,7 +25,8 @@
 '''
 
 from setuptools import setup, find_packages
-import glob, shutil, re
+import subprocess
+import glob, shutil, re, os, sys
 from distutils.command.install import install
 from distutils.command.clean import clean
 from simulation._version import __version__, __author__, __email__
@@ -77,7 +78,7 @@ class LIGGGHTS(Track):
 
 		self.spawn(cmd=['git', 'clone', 'https://github.com/CFDEMproject/LIGGGHTS-PUBLIC.git'])
 
-		files = glob.glob(os.path.join('LIGGGHTS-PUBLIC', 'src', '*.cpp')
+		files = glob.glob(os.path.join('LIGGGHTS-PUBLIC', 'src', '*.cpp'))
 
 		count = 0
 		os.chdir(os.path.join('LIGGGHTS-PUBLIC', 'src'))
@@ -94,33 +95,45 @@ class LIGGGHTS(Track):
 		sys.stdout.write('\nInstallation of LIGGGHTS-PUBLIC complete\n')
 		os.chdir('../..')
 
+class Clean(clean):
+
+	def run(self):
+		for ddir in ['build', 'dist', 'PyGran.egg-info']: 
+			if os.path.isdir(ddir):
+				print('Deleting ' + os.path.abspath(ddir))
+				shutil.rmtree(ddir)
+
+		super().run()
 
 setup(
-		name = "PyGran.simulation",
-		version = __version__,
-		author = __author__,
-		author_email = __email__,
-		description = ("A PyGran submodule for running DEM simulation"),
-		license = "GNU v2",
-		keywords = "Discrete Element Method, Granular Materials",
-		url = "https://github.com/Andrew-AbiMansour/PyGran.simulation",
-		packages=find_packages(),
-		include_package_data=True,
-		install_requires=['numpy', 'scipy'],
-		extras_require={'extra': ['mpi4py', 'vtk', 'Pillow']},
-		long_description='A PyGran submodule for running DEM simulation. See http://www.pygran.org for more info on PyGran.',
-		classifiers=[
-				"Development Status :: 4 - Beta",
-				"Topic :: Utilities",
-				"License :: OSI Approved :: GNU General Public License v2 (GPLv2)",
-				"Programming Language :: Python :: 2.7",
-				"Programming Language :: Python :: 3",
-				"Programming Language :: Python :: 3.4",
-				"Programming Language :: Python :: 3.5",
-				"Programming Language :: Python :: 3.6",
-				"Programming Language :: Python :: 3.7",
-				"Operating System :: POSIX :: Linux"
-		],
+	name = "PyGran.simulation",
+	version = __version__,
+	author = __author__,
+	author_email = __email__,
+	description = ("A PyGran submodule for running DEM simulation"),
+	license = "GNU v2",
+	keywords = "Discrete Element Method, Granular Materials",
+	url = "https://github.com/Andrew-AbiMansour/PyGran.simulation",
+	packages = find_packages(),
+	include_package_data = True,
+	install_requires = ['numpy', 'scipy'],
+	extras_require = {'extra': ['mpi4py', 'vtk', 'Pillow']},
+	long_description = 'A PyGran submodule for running DEM simulation. See http://www.pygran.org for more info on PyGran.',
+	classifiers = [
+			"Development Status :: 4 - Beta",
+			"Topic :: Utilities",
+			"License :: OSI Approved :: GNU General Public License v2 (GPLv2)",
+			"Programming Language :: Python :: 2.7",
+			"Programming Language :: Python :: 3",
+			"Programming Language :: Python :: 3.4",
+			"Programming Language :: Python :: 3.5",
+			"Programming Language :: Python :: 3.6",
+			"Programming Language :: Python :: 3.7",
+			"Operating System :: POSIX :: Linux"
+	],
 
-		zip_safe=True
+	cmdclass = {'build_liggghts': LIGGGHTS, 'clean': Clean},
+	zip_safe = False,
+	ext_modules = [],
+	include_dirs = [],
 )
