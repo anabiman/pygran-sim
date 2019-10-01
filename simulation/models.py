@@ -40,7 +40,7 @@ and LICENSE files.
 import numpy as np
 from scipy.integrate import ode
 from scipy.optimize import fsolve
-from ..params import pygranToLIGGGHTS 
+from PyGran.params import pygranToLIGGGHTS 
 import math, os
 from mpi4py import MPI
 
