@@ -1,0 +1,46 @@
+version: 2
+jobs:
+  build:
+
+    branches:
+      only:
+        - master 
+
+    docker:
+      - image: circleci/python:3.7.1
+      - image: circleci/python:2.7
+
+    working_directory: ~/repo
+
+    steps:
+
+      - checkout # checkout src code to working dir
+
+      - run:
+         name: install openmpi
+         command: |
+            sudo apt-get update && sudo apt-get install libopenmpi-dev openmpi-common openmpi-bin vtk6 libvtk6-dev
+
+      - run:
+          name: install PyGran.simulation deps
+          command: |
+            pip3 install --upgrade pip --user
+            pip3 install -e .[extra] --user
+
+      - run:
+          name: compile LIGGGHTS
+          command: |
+            python3 setup.py build_liggghts
+
+      - run:
+          name: install PyGran.simulation
+          command: |
+            pip3 install . --user
+
+      - run:
+          name: run tests
+          command: |
+            mpirun -n 2 python3 -m tests DEM flow
+
+      - store_test_results:
+          path: test-results
