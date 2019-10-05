@@ -11,3 +11,4 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Source code from PyGran repo
 - CHANGELOG for version logging
 - CircleCI config for continuous integration
+- Added License file
