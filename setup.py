@@ -1,8 +1,8 @@
 '''
   Created on Oct 10, 2019
-  @author: Andrew Abi-Mansour
+  Author: Andrew Abi-Mansour
 
-  This is the
+  This is the::
 
   ██████╗ ██╗   ██╗ ██████╗ ██████╗  █████╗ ███╗   ██╗
   ██╔══██╗╚██╗ ██╔╝██╔════╝ ██╔══██╗██╔══██╗████╗  ██║
@@ -29,7 +29,16 @@ import subprocess
 import glob, shutil, re, os, sys
 from distutils.command.install import install
 from distutils.command.clean import clean
-from simulation._version import __version__, __author__, __email__
+
+# Extract metadata from simulation._version
+with open(os.path.join('simulation', '_version.py'), 'r') as fp:
+	for line in fp.readlines():
+		if '__version__' in line:
+			__version__ = line.split('=')[-1].strip().strip("''")
+		elif '__email__' in line:
+			__email__ = line.split('=')[-1].strip().strip("''")
+		elif '__author__' in line:
+			__author__ = line.split('=')[-1].strip().strip("''")
 
 class Track(install):
 	""" An install class that enables the tracking of installation/compilation progress """
