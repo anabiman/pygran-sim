@@ -45,6 +45,7 @@ class Track(install):
 
 	def execute(self, cmd, cwd='.'):
 		popen = subprocess.Popen(cmd, stdout=subprocess.PIPE, universal_newlines=True, cwd=cwd, shell=True)
+
 		for stdout_line in iter(popen.stdout.readline, ""):
 			yield stdout_line 
 
@@ -54,65 +55,54 @@ class Track(install):
 		if return_code:
 			raise subprocess.CalledProcessError(return_code, cmd)
 
-		def print_progress(self, iteration, prefix='', suffix='', decimals=1, total = 100):
-			"""
-			Call in a loop to create terminal progress bar
-			@params:
-				iteration   - Required  : current iteration (Int)
-				total       - Required  : total iterations (Int)
-				prefix      - Optional  : prefix string (Str)
-				suffix      - Optional  : suffix string (Str)
-				decimals    - Optional  : positive number of decimals in percent complete (Int)
-				bar_length  - Optional  : character length of bar (Int)
-			"""
-			str_format = "{0:." + str(decimals) + "f}"
-			percents = str_format.format(100 * (iteration / float(total)))
-			sys.stdout.write('\r %s%s %s' % (percents, '%', suffix))
-			sys.stdout.flush()
-
-		def run(self):
-			self.do_pre_install_stuff()
-
-		def do_pre_install_stuff(self):
-			raise NotImplementedError
-
-class LIGGGHTS(Track):
-	""" A class that enables the compilation of LIGGGHTS-PUBLIC from github """
-
-	def do_pre_install_stuff(self):
-
-		if os.path.exists('LIGGGHTS-PUBLIC'):
-			print('Deleting LIGGGHTS-PUBLIC')
-			shutil.rmtree('LIGGGHTS-PUBLIC')
-
-		self.spawn(cmd=['git', 'clone', 'https://github.com/CFDEMproject/LIGGGHTS-PUBLIC.git'])
-
-		files = glob.glob(os.path.join('LIGGGHTS-PUBLIC', 'src', '*.cpp'))
-
-		count = 0
-		os.chdir(os.path.join('LIGGGHTS-PUBLIC', 'src'))
-		self.spawn(cmd=['make', 'clean-all'])
-
-		print('Compiling LIGGGHTS as a shared library\n')
-
-		for path in self.execute(cmd='make auto'):
-			count +=1
-			self.print_progress(count, prefix = 'Progress:', suffix = 'Complete', total = len(files) * 2.05)
-
-		self.spawn(cmd=['make', '-f', 'Makefile.shlib', 'auto'])
-
-		sys.stdout.write('\nInstallation of LIGGGHTS-PUBLIC complete\n')
-		os.chdir('../..')
-
-class Clean(clean):
+	def print_progress(self, iteration, prefix='', suffix='', decimals=1, total = 100):
+		"""
+		Call in a loop to create terminal progress bar
+		@params:
+			iteration   - Required  : current iteration (Int)
+			total       - Required  : total iterations (Int)
+			prefix      - Optional  : prefix string (Str)
+			suffix      - Optional  : suffix string (Str)
+			decimals    - Optional  : positive number of decimals in percent complete (Int)
+			bar_length  - Optional  : character length of bar (Int)
+		"""
+		str_format = "{0:." + str(decimals) + "f}"
+		percents = str_format.format(100 * (iteration / float(total)))
+		sys.stdout.write('\r %s%s %s' % (percents, '%', suffix))
+		sys.stdout.flush()
 
 	def run(self):
-		for ddir in ['build', 'dist', 'PyGran.egg-info']: 
-			if os.path.isdir(ddir):
-				print('Deleting ' + os.path.abspath(ddir))
-				shutil.rmtree(ddir)
+		self.do_pre_install_stuff()
 
-		super().run()
+	def do_pre_install_stuff(self):
+		raise NotImplementedError
+
+class LIGGGHTS(Track):
+		""" A class that enables the compilation of LIGGGHTS-PUBLIC from github """
+
+		def do_pre_install_stuff(self):
+
+			if os.path.exists('LIGGGHTS-PUBLIC'):
+				print('Deleting ' + 'LIGGGHTS-PUBLIC')
+				shutil.rmtree('LIGGGHTS-PUBLIC')
+
+			self.spawn(cmd=['git', 'clone', 'https://github.com/CFDEMproject/LIGGGHTS-PUBLIC.git'])
+
+			files = glob.glob(os.path.join('LIGGGHTS-PUBLIC', 'src', '*.cpp'))
+
+			count = 0
+			os.chdir(os.path.join('LIGGGHTS-PUBLIC', 'src'))
+			self.spawn(cmd=['make', 'clean-all'])
+
+			print('Compiling LIGGGHTS as a shared library\n')
+
+			for path in self.execute(cmd='make auto'):
+				count +=1
+				self.print_progress(count, prefix = 'Progress:', suffix = 'Complete', total = len(files) * 2.05)
+
+			self.spawn(cmd=['make', '-f', 'Makefile.shlib', 'auto'])
+			sys.stdout.write('\nInstallation of LIGGGHTS-PUBLIC complete\n')
+			os.chdir(os.path.join('..','..'))
 
 setup(
 	name = "PyGran.simulation",
@@ -141,8 +131,6 @@ setup(
 			"Operating System :: POSIX :: Linux"
 	],
 
-	cmdclass = {'build_liggghts': LIGGGHTS, 'clean': Clean},
-	zip_safe = False,
-	ext_modules = [],
-	include_dirs = [],
+	cmdclass = {'build_liggghts': LIGGGHTS},
+	zip_safe = False
 )
