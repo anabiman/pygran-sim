@@ -26,4 +26,4 @@
   and LICENSE files.
 '''
 
-from .simulation import *
+from .PyGranSim import *

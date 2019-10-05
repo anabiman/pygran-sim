@@ -1,5 +1,5 @@
 '''
-A module that stores metadata for PyGran.simulation package
+A module that stores metadata for PyGranSim package
  
 Created on Oct 10, 2019
 Author: Andrew Abi-Mansour

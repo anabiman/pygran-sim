@@ -119,7 +119,7 @@ def register(**args):
 		if 'mtype' not in args:
 			args['mtype'] = 'normal'
 
-		_dir, _ = __file__.split(__name__.split('PyGran.simulation.')[-1] +'.py')
+		_dir, _ = __file__.split(__name__.split('PyGranSim.')[-1] +'.py')
 
 		if 'src_dir' not in args:
 			if os.path.isfile(_dir + '../.config'):
