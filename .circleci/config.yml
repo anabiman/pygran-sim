@@ -25,7 +25,7 @@ jobs:
           name: install PyGran.simulation deps
           command: |
             pip3 install --upgrade pip --user
-            pip3 install codecov
+            pip3 install codecov --user
             pip3 install -e .[extra] --user
 
       - run:
