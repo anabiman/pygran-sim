@@ -25,6 +25,7 @@ jobs:
           name: install PyGran.simulation deps
           command: |
             pip3 install --upgrade pip --user
+            pip3 install codecov
             pip3 install -e .[extra] --user
 
       - run:
@@ -40,7 +41,11 @@ jobs:
       - run:
           name: run tests
           command: |
+            pytest --cov=PyGran.simulation tests
             mpirun -n 2 python3 -m tests DEM flow
+
+      - run:
+          codecov
 
       - store_test_results:
           path: test-results
