@@ -31,7 +31,7 @@ from distutils.command.install import install
 from distutils.command.clean import clean
 
 # Extract metadata from simulation._version
-with open(os.path.join('simulation', '_version.py'), 'r') as fp:
+with open(os.path.join('PyGranSim', '_version.py'), 'r') as fp:
 	for line in fp.readlines():
 		if '__version__' in line:
 			__version__ = line.split('=')[-1].strip().strip("''")
@@ -105,18 +105,18 @@ class LIGGGHTS(Track):
 			os.chdir(os.path.join('..','..'))
 
 setup(
-	name = "PyGran.simulation",
+	name = "PyGranSim",
 	version = __version__,
 	author = __author__,
 	author_email = __email__,
 	description = ("A PyGran submodule for running DEM simulation"),
 	license = "GNU v2",
 	keywords = "Discrete Element Method, Granular Materials",
-	url = "https://github.com/Andrew-AbiMansour/PyGran.simulation",
+	url = "https://github.com/Andrew-AbiMansour/PyGranSim",
 	packages = find_packages(),
 	include_package_data = True,
 	install_requires = ['numpy', 'scipy'],
-	extras_require = {'extra': ['mpi4py', 'vtk', 'Pillow']},
+	extras_require = {'extra': ['mpi4py', 'vtk', 'Pillow', 'pytest', 'pytest-cov']},
 	long_description = 'A PyGran submodule for running DEM simulation. See http://www.pygran.org for more info on PyGran.',
 	classifiers = [
 			"Development Status :: 4 - Beta",
