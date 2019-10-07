@@ -37,7 +37,7 @@ except:
 from importlib import import_module
 from datetime import datetime
 import os, sys
-from PyGran.tools import find, _setConfig
+from .tools import find, _setConfig
 from . import models
 import shutil
 
