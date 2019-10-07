@@ -56,7 +56,7 @@ import os
 import glob
 import sys
 from importlib import import_module
-from ..tools import find, dictToTuple
+from .tools import find, dictToTuple
 
 class liggghts:
   """
