@@ -29,7 +29,7 @@ If not, see http://www.gnu.org/licenses . See also top-level README
 and LICENSE files.
 '''
 
-from PyGran.tools import find
+from .tools import find
 try:
 	from mpi4py import MPI
 except:
