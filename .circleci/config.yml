@@ -41,8 +41,7 @@ jobs:
       - run:
           name: run tests
           command: |
-            pytest --cov=PyGran.simulation tests
-            mpirun -n 2 python3 -m tests DEM flow
+            $HOME/.local/bin/pytest --cov=PyGran.simulation tests
 
       - run:
           codecov
