@@ -53,7 +53,7 @@ jobs:
 
       - codecov/upload:
           file: coverage.xml
-          flags: backend 
+          flags: frontend
 
       - store_test_results:
           path: tests
