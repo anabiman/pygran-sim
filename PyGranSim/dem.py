@@ -295,7 +295,7 @@ class DEM:
     """
     for i in range(self.nSim):
         if self.rank < self.pProcs * (i + 1):
-          return self.dem.add_viscous(**args)
+          return self.dem.addViscous(**args)
 
   def insert(self, species, value, **args):
     for i in range(self.nSim):
