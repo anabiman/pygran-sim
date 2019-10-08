@@ -8,6 +8,9 @@ jobs:
 
     working_directory: ~/repo
 
+    environment:
+      BASH_ENV: ~/.bashrc
+
     steps:
 
       - checkout # checkout src code to working dir
@@ -22,7 +25,7 @@ jobs:
 
       - run:
          name: install global deps
-         command: sudo apt-get update && sudo apt-get install libopenmpi-dev openmpi-common openmpi-bin vtk6 libvtk6-dev coverage
+         command: sudo apt-get update && sudo apt-get install libopenmpi-dev openmpi-common openmpi-bin vtk6 libvtk6-dev
 
       - run:
           name: clone PyGranParams
@@ -56,7 +59,8 @@ jobs:
       - run:
           name: run code coverage
           command: |
-            $HOME/.local/bin/codecov
+            echo 'export PATH=$HOME/.local/bin:$PATH' >> $BASH_ENV 
+            codecov
 
       - codecov/upload:
           file: coverage.xml
