@@ -51,7 +51,9 @@ jobs:
 
       - run:
           name: run code coverage
-          command: $HOME/.local/bin/codecov
+          command: |
+            $HOME/.local/bin/codecov
+            ls -ltra
 
       - store_test_results:
           path: tests
