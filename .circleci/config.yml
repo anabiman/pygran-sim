@@ -44,7 +44,13 @@ jobs:
 
       - run:
           name: run tests
-          command: $HOME/.local/bin/pytest --cov=./ tests
+          # request codecov to detect CI environment to pass through to docker
+          command: |
+            ci_env=`bash <(curl -s https://codecov.io/env)`
+            docker run $ci_env ...
+            $HOME/.local/bin/pytest --cov=PyGranSim tests
+            bash <(curl -s https://codecov.io/bash)
+
 
       - run:
           name: run code coverage
