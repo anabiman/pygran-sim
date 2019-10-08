@@ -54,5 +54,9 @@ jobs:
           command: |
             $HOME/.local/bin/codecov
 
+      - codecov/upload:
+          file: coverage.xml
+          flags: backend 
+
       - store_test_results:
           path: tests
