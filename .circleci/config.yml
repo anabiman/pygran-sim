@@ -54,4 +54,4 @@ jobs:
           codecov
 
       - store_test_results:
-          path: test-results
+          path: tests
