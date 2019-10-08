@@ -174,8 +174,11 @@ class DEM:
 
       if not scriptFile.endswith('__main__.py'): # user is importing their script as a module, dont back up:
         if scriptFile.endswith('.py'):
-          logging.info('Backing up {} file'.format(scriptFile))
-          shutil.copyfile(os.path.join(os.getcwd(), '..', scriptFile), '{}'.format(scriptFile.split('.')[0] + '-bk.py'))
+          logging.debug('Attempting to backup {} file'.format(scriptFile))
+          try:
+            shutil.copyfile(os.path.join(os.getcwd(), '..', scriptFile), '{}'.format(scriptFile.split('.')[0] + '-bk.py'))
+          except:
+            logging.debug('Backup failed')
 
       else:
         logging.info('Input script run as a module. Not backing up file')
