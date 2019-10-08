@@ -25,7 +25,7 @@ jobs:
         name: clone PyGranParams
         command: | 
             git clone https://github.com/Andrew-AbiMansour/PyGranParams
-	    cd PyGranParams
+            cd PyGranParams
             pip3 install . --user
             cd ..
 
