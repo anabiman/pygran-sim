@@ -2,7 +2,6 @@ import PyGranSim as simulation
 from PyGranParams import organic
 import pytest
 
-@pytest.mark.slow
 def test_run():
 
 	# Create a dictionary of physical parameters
@@ -26,7 +25,7 @@ def test_run():
 
 		# Import surface mesh
 		'mesh': {
-			'wallZ': {'file': 'mesh/square.stl', 'mtype': 'mesh/surface/stress', 'material': organic, \
+			'wallZ': {'file': 'tests/DEM/compaction/mesh/square.stl', 'mtype': 'mesh/surface/stress', 'material': organic, \
 				'args': {'scale': 1e-3,'move': (0, 0, 1e-3)}}
 			},
 	}
@@ -50,3 +49,5 @@ def test_run():
 	# Relax the system
 	moveZ = sim.moveMesh(name='wallZ', linear=(0, 0, 0.01))
 	sim.run(params['nsteps'] * 2, params['dt'])
+
+test_run()
