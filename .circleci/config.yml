@@ -22,6 +22,14 @@ jobs:
             sudo apt-get update && sudo apt-get install libopenmpi-dev openmpi-common openmpi-bin vtk6 libvtk6-dev
 
       - run:
+        name: clone PyGranParams
+        command: | 
+            git clone https://github.com/Andrew-AbiMansour/PyGranParams
+	    cd PyGranParams
+            pip3 install . --user
+            cd ..
+
+      - run:
           name: install PyGran.simulation deps
           command: |
             pip3 install --upgrade pip --user
