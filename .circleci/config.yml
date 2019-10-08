@@ -18,33 +18,32 @@ jobs:
 
       - run:
          name: install openmpi
-         command: |
-            sudo apt-get update && sudo apt-get install libopenmpi-dev openmpi-common openmpi-bin vtk6 libvtk6-dev
+         command: sudo apt-get update && sudo apt-get install libopenmpi-dev openmpi-common openmpi-bin vtk6 libvtk6-dev
 
       - run:
         name: clone PyGranParams
         command: | 
-            git clone https://github.com/Andrew-AbiMansour/PyGranParams
-            cd PyGranParams
-            pip3 install . --user
-            cd ..
+          git clone https://github.com/Andrew-AbiMansour/PyGranParams
+          cd PyGranParams
+          pip install . --user
+          cd ..
 
       - run:
           name: install PyGran.simulation deps
           command: |
-            pip3 install --upgrade pip --user
-            pip3 install codecov --user
-            pip3 install -e .[extra] --user
+            pip install --upgrade pip --user
+            pip install codecov --user
+            pip install -e .[extra] --user
 
       - run:
           name: compile LIGGGHTS
           command: |
-            python3 setup.py build_liggghts
+            python setup.py build_liggghts
 
       - run:
           name: install PyGran.simulation
           command: |
-            pip3 install . --user
+            pip install . --user
 
       - run:
           name: run tests
