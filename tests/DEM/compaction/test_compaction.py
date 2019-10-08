@@ -49,5 +49,3 @@ def test_run():
 	# Relax the system
 	moveZ = sim.moveMesh(name='wallZ', linear=(0, 0, 0.01))
 	sim.run(params['nsteps'] * 2, params['dt'])
-
-test_run()
