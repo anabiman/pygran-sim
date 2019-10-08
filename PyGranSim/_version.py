@@ -1,7 +1,7 @@
 '''
 A module that stores metadata for PyGranSim package
  
-Created on Oct 10, 2019
+Created on Oct 04, 2019
 Author: Andrew Abi-Mansour
 
 This is the::
