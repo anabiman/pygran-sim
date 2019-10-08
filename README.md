@@ -1,6 +1,9 @@
-# Welcome to the PyGranSim webpage!
+# Welcome to the PyGran.simulation webpage!
+[//]: # (Badges)
+[![CircleCI](https://circleci.com/gh/Andrew-AbiMansour/PyGran.simulation.svg?style=shield)](https://circleci.com/gh/Andrew-AbiMansour/PyGran.simulation)
+[![codecov](https://codecov.io/gh/jaclark5/DESPASITO/branch/master/graph/badge.svg)](https://codecov.io/gh/jaclark5/DESPASITO/branch/master)
 
-PyGranSim is part of the PyGran project, an open-source toolkit primarily designed for analyzing DEM simulation data. In addition to performing basic and custom post-processing, PyGran enables running DEM simulation with the PyGranSim module. For more info on PyGran, see [here](http://www.pygran.org).
+PyGran.simulation is part of the PyGran project, an open-source toolkit primarily designed for analyzing DEM simulation data. In addition to performing basic and custom post-processing, PyGran enables running DEM simulation with the PyGran.simulation module. For more info on PyGran, see [here](http://www.pygran.org).
 
 **If your find PyGran useful in your research, please consider citing the following paper:**
 
@@ -20,7 +23,7 @@ PyGranSim is part of the PyGran project, an open-source toolkit primarily design
 ```
 
 ## Quick Installation
-PyGranSim is typically installed with other PyGran submodules. See [here](http://andrew-abimansour.github.io/PyGran/docs/introduction.html#installation) for more info. For a solo PyGranSim local installation, simply clone this repository and then use pip (or pip3) to run from the source dir:
+PyGran.simulation is typically installed with other PyGran submodules. See [here](http://andrew-abimansour.github.io/PyGran/docs/introduction.html#installation) for more info. For a solo PyGran.simulation local installation, simply clone this repository and then use pip (or pip3) to run from the source dir:
 ```bash
 pip install . --user
 ```
@@ -28,13 +31,13 @@ You can alternatively run ``setup.py`` to build and/install the package. See ``s
 
 
 ## Basic Usage
-PyGranSim provides an interface for running DEM simulation with [LIGGGHTS](https://www.cfdem.com/liggghtsr-open-source-discrete-element-method-particle-simulation-code). This is achieved by importing the <i>simulation</i> module as shown in the script below for simulating granular flow in a hopper.
+PyGran.simulation also provides an interface for running DEM simulation with [LIGGGHTS](https://www.cfdem.com/liggghtsr-open-source-discrete-element-method-particle-simulation-code). This is achieved by importing the <i>simulation</i> module as shown in the script below for simulating granular flow in a hopper.
 
 <p style="text-align:center;"><img src="http://andrew-abimansour.github.io/PyGran/images/hopper.png" width="600"></p>
 
 ```python
-import PyGranSim as simulation
-from PyGranParams import organic
+from PyGran import simulation
+from PyGran import params
 
 # Create a DEM parameter dictionary
 param = {
@@ -62,4 +65,4 @@ insert = sim.insert(species=1, value=1000)
 sim.run(nsteps=1e6, dt=1e-6)
 ```
 
-For more examples on using PyGranSim for running DEM simulation, check out the <a href="http://andrew-abimansour.github.io/PyGran/tests/examples.html">examples</a> page.
+For more examples on using PyGran for running DEM simulation, check out the <a href="http://andrew-abimansour.github.io/PyGran/tests/examples.html">examples</a> page.
