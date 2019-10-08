@@ -3,10 +3,6 @@ orbs:
   codecov: codecov
 jobs:
   build:
-    steps:
-      - codecov/upload:
-        file: {{ coverage_report_filepath }}
-
     branches:
       only:
         - master 
