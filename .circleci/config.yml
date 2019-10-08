@@ -19,27 +19,27 @@ jobs:
       - run:
           name: clone PyGranParams
           command: | 
+            pip3 install --upgrade pip --user
             git clone https://github.com/Andrew-AbiMansour/PyGranParams
             cd PyGranParams
-            pip install . --user
+            pip3 install . --user
             cd ..
 
       - run:
           name: install PyGranSim deps
           command: |
-            pip install --upgrade pip --user
-            pip install codecov --user
-            pip install -e .[extra] --user
+            pip3 install codecov --user
+            pip3 install -e .[extra] --user
 
       - run:
           name: compile LIGGGHTS
           command: |
-            python setup.py build_liggghts
+            python3 setup.py build_liggghts
 
       - run:
           name: install PyGranSim
           command: |
-            pip install . --user
+            pip3 install . --user
 
       - run:
           name: run tests
