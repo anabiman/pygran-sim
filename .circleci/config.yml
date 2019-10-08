@@ -44,7 +44,7 @@ jobs:
 
       - run:
           name: run tests
-          command: $HOME/.local/bin/pytest --cov=PyGranSim tests
+          command: $HOME/.local/bin/pytest --cov=./ tests
 
       - run:
           name: run code coverage
