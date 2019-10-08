@@ -47,11 +47,11 @@ jobs:
 
       - run:
           name: run tests
-          command: |
-            $HOME/.local/bin/pytest --cov=PyGranSim tests
+          command: $HOME/.local/bin/pytest --cov=PyGranSim tests
 
       - run:
-          codecov
+          name: run code coverage
+          command: $HOME/.local/bin/codecov
 
       - store_test_results:
           path: tests
