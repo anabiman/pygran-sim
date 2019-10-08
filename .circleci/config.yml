@@ -48,7 +48,7 @@ jobs:
       - run:
           name: run tests
           command: |
-            $HOME/.local/bin/pytest --cov=PyGran.simulation tests
+            $HOME/.local/bin/pytest --cov=PyGranSim tests
 
       - run:
           codecov
