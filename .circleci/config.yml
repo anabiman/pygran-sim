@@ -13,33 +13,39 @@ jobs:
       - checkout # checkout src code to working dir
 
       - run:
+          name: install python 3.7
+          command: |
+            pyenv global 3.7.0
+            sudo python -m pip install --upgrade pip setuptools wheel
+            sudo python -m pip install pipenv
+
+      - run:
          name: install global deps
-         command: sudo apt-get update && sudo apt-get install libopenmpi-dev openmpi-common openmpi-bin vtk6 libvtk6-dev python3-pip
+         command: sudo apt-get update && sudo apt-get install libopenmpi-dev openmpi-common openmpi-bin vtk6 libvtk6-dev
 
       - run:
           name: clone PyGranParams
           command: | 
-            pip3 install --upgrade pip --user
             git clone https://github.com/Andrew-AbiMansour/PyGranParams
             cd PyGranParams
-            pip3 install . --user
+            pip install . --user
             cd ..
 
       - run:
           name: install PyGranSim deps
           command: |
-            pip3 install codecov --user
-            pip3 install -e .[extra] --user
+            pip install codecov --user
+            pip install -e .[extra] --user
 
       - run:
           name: compile LIGGGHTS
           command: |
-            python3 setup.py build_liggghts
+            python setup.py build_liggghts
 
       - run:
           name: install PyGranSim
           command: |
-            pip3 install . --user
+            pip install . --user
 
       - run:
           name: run tests
