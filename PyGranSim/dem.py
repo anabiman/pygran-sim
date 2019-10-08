@@ -136,7 +136,8 @@ class DEM:
     # update rank locally for each comm
     self.rank = self.split.Get_rank()
 
-    module = import_module('PyGranSim.' + self.pargs['engine'])
+    module = import_module(__name__.split('.dem')[0] + '.' + self.pargs['engine'])
+
     output = self.pargs['output'] if self.nSim == 1 else (self.pargs['output'] + '-multi-mode-' + str(self.color))
 
     if not self.split.Get_rank():
