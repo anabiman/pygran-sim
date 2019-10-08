@@ -1,5 +1,5 @@
 import PyGranSim as simulation
-from PyGran.params import organic
+from PyGranParams import organic
 import pytest
 
 @pytest.mark.slow
