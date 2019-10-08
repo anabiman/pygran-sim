@@ -31,13 +31,20 @@ import os
 def dictToTuple(**args):
 	""" Converts a dictionary (args) to a tuple 
 
-	e.g. if arg = {'key_1': value1, 'key_2': value2}
-	this function returns ('key_1', value1, 'key_2', value2)
+	:param args: dictionary used mainly by liggghts API
+	:type args: dict
 
-	if value1 is a tuple, it is broken into a string
-	e.g. if arg = {'key_1': (1,2,3)}
-	this function returns ('key_1', '1 2 3')
+	:Example:
+	   args = {'key_1': value1, 'key_2': value2}
+	   dictToTuple(**args) -> ('key_1', value1, 'key_2', value2)
 
+	:note: If value1 is a tuple, it is broken into a string
+	:Example:
+	   args = {'key_1': (1,2,3)}
+	   dictToTuple(**args) -> ('key_1', '1 2 3')
+
+	:return: dictionary key/values refactored if needed
+	:rtype: tuple
 	"""
 
 	keys = args.keys()
@@ -50,6 +57,27 @@ def dictToTuple(**args):
 		tup = tup + pair
 
 	return tup
+
+def pygranToLIGGGHTS(**material):
+        """ Transform a PyGran material database into a LIGGGHTS material dictionary
+
+	:param material: definition of material(s) used mainly by liggghts API
+	:type material: dict
+
+	return: definition of material(s) in LIGGGHTS-compatible format
+	:rtype: dict
+ 	"""
+
+        for key in material:
+                if key is 'youngsModulus' or key is 'poissonsRatio' or key is 'yieldPress':
+                        material[key] = (key, 'peratomtype', str(material[key]))
+                elif key is 'coefficientFriction' or key is 'coefficientRollingFriction' or key is 'cohesionEnergyDensity' \
+                        or key is 'coefficientRestitution' or key is 'coefficientRollingViscousDamping':
+                        material[key] = (key, 'peratomtypepair', str(material[key]))
+                elif key is 'characteristicVelocity':
+                        material[key] = (key, 'scalar', str(material[key]))
+
+        return material
 
 def find(fname, path):
 	""" Finds a filename (fname) along the path `path' 
@@ -67,7 +95,7 @@ def find(fname, path):
 
 def run(program):
 	""" Unix only: launches an executable program available in the PATH environment variable.
-	
+
 	@program: string specifying the executable to search for
 
 	returns 0 if successful and 1 otherwise. """
@@ -85,13 +113,30 @@ def run(program):
 	return 1
 
 def configure(path, version=None, src=None):
-	""" configures PyGran to use a specific LIGGGHTS library """
+	""" Configures PyGran to use a specific DEM/engine library
+
+	:param path: path to library
+	:type path: str
+
+	:param version: a set of numbers and/or characters indicating the version of the library, e.g. 1.5a
+	:type version: str
+
+	:param src: path to library source code
+	:type src: str
+	 """
 	_setLIGGGHTS(path, version, src)
 
 def _setLIGGGHTS(path, version=None, src=None):
-	""" Write libliggghts path to .config file 
+	""" Write libliggghts path to .config file
 
-	@[version]: a set of numbers &/or characters indicating the version of the library, e.g. 1.5a
+        :param path: path to LIGGGHTS library
+        :type path: str
+
+        :param version: a set of numbers and/or characters indicating the version of the library, e.g. 1.5a
+        :type version: str
+
+        :param src: path to LIGGGHTS source code
+        :type src: str
 	"""
 
 	wdir, _ = os.path.abspath(__file__).split(os.path.basename(__file__))
@@ -108,7 +153,14 @@ def _setLIGGGHTS(path, version=None, src=None):
 			fp.write('\nversion=' + version)
 
 def _findEngines(engine):
-	""" Searches for and lists all available libraries for a specific engine """
+	""" Searches for and lists all available libraries for a specific engine
+
+	:param engine: DEM engine specification
+	:type engine: str
+
+	:return: all DEM engines found on the system
+	:rtype: list
+	 """
 
 	engines = [os.path.join(root, engine) for root, dirs, files in os.walk('/') if engine in files]
 
@@ -122,9 +174,20 @@ def _findEngines(engine):
 	return engines
 
 def _setConfig(wdir, engine):
-	""" Reads/writes libliggghts to .config file """
+	""" Reads/writes DEM library to .config file
 
-	library, src, __version__ = '', None, None
+	:param wdir: working directory
+	:type wdir: str
+
+	:param engine: DEM engine specification
+	:type engine: str
+
+	:return: path to library, source, and version of DEM library
+	:rtype: tuple
+
+	.. todo:: Change the place .config file is written (better use config.ini in ~/.config)
+	"""
+	library, src, version = '', None, None
 	file = wdir + '../.config'
 
 	if os.path.isfile(file):
@@ -138,7 +201,7 @@ def _setConfig(wdir, engine):
 					elif 'src' in line:
 						src = line.split('=')[-1].rstrip()
 					elif 'version' in line:
-						__version__ = float(line.split('=')[-1].rstrip())
+						version = float(line.split('=')[-1].rstrip())
 
 			# Make sure the library exists; else, find it somewhere else
 			if not os.path.isfile(library):
@@ -146,7 +209,7 @@ def _setConfig(wdir, engine):
 				_setLIGGGHTS(library)
 				print('WARNING: Could not find user-specified library. Will use {} instead ...'.format(library))
 
-			return library, src, __version__
+			return library, src, version
 
 	with open(wdir + '../.config', 'w') as fp:
 		library = find('lib' + engine + '.so', '/')
@@ -159,4 +222,4 @@ def _setConfig(wdir, engine):
 			print('PyGran looked for ' + 'lib' + engine + '.so' + '. If the file exists, make sure it can be executed by the user.')
 			sys.exit()
 
-	return library, src, __version__
+	return library, src, version
