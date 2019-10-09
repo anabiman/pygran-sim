@@ -41,7 +41,7 @@ import numpy as np
 from scipy.integrate import ode
 from scipy.optimize import fsolve
 from .tools import pygranToLIGGGHTS 
-import math, os
+import os
 from mpi4py import MPI
 
 def template_tablet(nspheres, radius, length):
@@ -322,7 +322,7 @@ class Model(object):
 			# Estimate the allowed sim timestep
 			try:
 				self.params['dt'] = (0.25 * self.contactTime()).min()
-			except:
+			except Exception:
 				self.params['dt'] = 1e-6
 
 				if 'model' in self.params:
@@ -352,8 +352,6 @@ class Model(object):
 		else:
 			rest = self.coefficientRestitution
 
-		poiss = self.poissonsRatio
-		yMod = self.youngsModulus
 		radius = self.radius
 		mass = self.mass
 
@@ -468,13 +466,13 @@ class Model(object):
 				yMod = self.youngsModulus
 				yMod /= 2.0 * (1.0  - poiss**2)
 
-				def jkr_disp(a, *args):
-					delta, Gamma, yMod, radius = args
-					return delta - a**4.0/radius + np.sqrt(2.0 * np.pi * Gamma / yMod) * a
+				#def jkr_disp(a, *args):
+				#	delta, Gamma, yMod, radius = args
+				#	return delta - a**4.0/radius + np.sqrt(2.0 * np.pi * Gamma / yMod) * a
 
-				def jkr_jacob(a, *args):
-					_, Gamma, yMod, radius = args
-					return - 4.0 * a**3/radius + np.sqrt(np.pi * Gamma / (a * 2.0 * yMod))
+				#def jkr_jacob(a, *args):
+				#	_, Gamma, yMod, radius = args
+				#	return - 4.0 * a**3/radius + np.sqrt(np.pi * Gamma / (a * 2.0 * yMod))
 
 				def contactRadius_symbolic(deltan, *args):
 					gamma, yeff, reffr = args
@@ -515,28 +513,26 @@ class Model(object):
 
 		return contRadius
 
-	def dissCoef(self):
+	def dissCoef(self, delta=None):
 		raise NotImplementedError('Not yet implemented')
 
-	def springStiff(self):
+	def springStiff(self, delta=None):
 		raise NotImplementedError('Not yet implemented')
 
-	def elasticForce(self):
+	def elasticForce(self, delta=None):
 		raise NotImplementedError('Not yet implemented')
 
-	def dissForce(self):
+	def dissForce(self, delta=None, deltav=None):
 		raise NotImplementedError('Not yet implemented')
 
-	def normalForce(self):
+	def normalForce(self, delta=None, deltav=None):
 		raise NotImplementedError('Not yet implemented')
 
-	def cohesiveForce(self):
+	def cohesiveForce(self, delta=None):
 		raise NotImplementedError('Not yet implemented')
 
 	def numericalForce(self, time, delta):
 		""" Returns the force used for numerical solvers """
-
-		radius = self.radius
 
 		force = self.normalForce(float(delta[0]), float(delta[1]))
 
@@ -544,7 +540,7 @@ class Model(object):
 
 		return np.array([delta[1], - force / mass])
 
-	def tangForce(self):
+	def tangForce(self, delta=None, deltav=None):
 		raise NotImplementedError('Not yet implemented')
 
 class SpringDashpot(Model):
@@ -594,7 +590,7 @@ class SpringDashpot(Model):
 		return 16.0/15.0 * np.sqrt(radius) * yMod * (15.0 * mass \
 			* v0 **2.0 / (16.0 * np.sqrt(radius) * yMod))**(1.0/5.0)
 
-	def dissCoef(self):
+	def dissCoef(self, delta=None):
 		""" Computes the normal dissipative coefficient (:math:`c_n`) for the dissipative force :math:`F_d = - c_n \dot{\delta_n}`
 
 		:return: dissipative coefficient (:math:`c_n`) 
@@ -603,11 +599,9 @@ class SpringDashpot(Model):
 		rest = self.coefficientRestitution
 		poiss = self.poissonsRatio
 		yMod = self.youngsModulus
-		radius = self.radius
 
 		mass = self.mass
 		yMod /= 2.0 * (1.0  - poiss**2)
-		v0 = self.characteristicVelocity
 
 		kn = self.springStiff()
 		loge = np.log(rest)
@@ -643,13 +637,9 @@ class SpringDashpot(Model):
 		.. todo:: Take cohesion (simplified JKR) into account
 		"""
 
-		rest = self.coefficientRestitution
-		poiss = self.poissonsRatio
-		yMod = self.youngsModulus
-		radius = self.radius
 		mass = self.mass
 
-		if dt is None:
+		if not dt:
 			dt = 0.01 * self.contactTime()
 
 		v0 = self.characteristicVelocity
@@ -683,11 +673,7 @@ class SpringDashpot(Model):
 		:rtype: float
 		"""
 
-		poiss = self.poissonsRatio
-		yMod = self.youngsModulus
 		radius = self.radius
-		mass = self.mass
-
 		kn = self.springStiff(radius)
 
 		return kn * delta
@@ -716,7 +702,6 @@ class SpringDashpot(Model):
 		"""
 
 		force = self.elasticForce(delta) - self.dissForce(delta, deltav)
-		radius = self.radius
 
 		if hasattr(self, 'cohesionEnergyDensity'):
 			force -= self.cohesiveForce(delta)
@@ -725,8 +710,7 @@ class SpringDashpot(Model):
 
 	def tangForce(self, delta, deltav):
 		""" Returns the total tangential force based on the Coulomb model """
-		force = self.elasticForce(delta) + self.dissForce(delta, deltav)
-
+		raise NotImplementedError('Not yet implemented')
 
 class HertzMindlin(Model):
 	"""
@@ -749,7 +733,7 @@ class HertzMindlin(Model):
 
 	def springStiff(self, delta):
 		""" Computes the spring constant :math:`k_n` for `F_n = k_n \delta_n^{3/2}`
-		
+
 		:param delta: normal displacement
 		:type delta: float
 		:return: stiffness (:math:`k_n`)
@@ -758,7 +742,6 @@ class HertzMindlin(Model):
 		"""
 		poiss = self.poissonsRatio
 		yMod = self.youngsModulus
-		radius = self.radius
 		yEff = yMod * 0.5 / (1.0  - poiss**2)
 
 		contRadius = self._contactRadius(delta, self.radius)
@@ -791,7 +774,6 @@ class HertzMindlin(Model):
 		poiss = self.poissonsRatio
 		yEff = yMod * 0.5 / (1.0  - poiss**2)
 
-		radius = self.radius
 		mass = self.mass
 
 		contRadius = self._contactRadius(delta, self.radius)
@@ -825,7 +807,6 @@ class HertzMindlin(Model):
 		"""
 
 		force = self.elasticForce(delta) - self.dissForce(delta, deltav)
-		radius = self.radius
 
 		if hasattr(self, 'cohesionEnergyDensity'):
 			force -= self.cohesiveForce(delta)
@@ -877,7 +858,6 @@ class ThorntonNing(Model):
 		"""
 
 		poiss = self.poissonsRatio
-		yMod = self.youngsModulus
 		yEff = self.youngsModulus / (2.0 * (1. - poiss**2))
 		py = self.yieldPress
 
@@ -914,8 +894,6 @@ class ThorntonNing(Model):
 		"""
 		poiss = self.poissonsRatio
 		yMod = self.youngsModulus
-		radius = self.radius	
-		mass = self.mass
 		yEff = yMod * 0.5 / (1.0  - poiss**2)
 
 		return 4.0 / 3.0 * yEff * self._contactRadius(delta, self.radius)
@@ -957,8 +935,8 @@ class ThorntonNing(Model):
 				c = - self.maxForce
 
 				x = (- b + np.sqrt(b*b - 4*a*c)) / (2 * a)
-				contRadius = x**(2.0/3.0)
-				# Why am I doing this? what is contRadius used for???? This seems to be equal to contMaxRadius when cohesion = off
+				# contRadius = x**(2.0/3.0)
+				# Why am I doing this? I commented the line above. what is contRadius used for???? This seems to be equal to contMaxRadius when cohesion = off
 
 				self.deltap = contMaxRadius*contMaxRadius * ( 1.0/reff - 1.0/self.radiusp )
 
