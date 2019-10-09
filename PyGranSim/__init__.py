@@ -28,8 +28,7 @@
 
 from .dem import *
 from glob import glob as _glob
-from .model_liggghts import *
-from . import generator, engine_liggghts
+from . import model_liggghts, generator, engine_liggghts
 from ._version import __version__, __author__, __email__
 
 class _findEngines:
