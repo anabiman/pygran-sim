@@ -31,7 +31,6 @@ and LICENSE files.
 
 from PyGran import analysis
 import numpy
-from numpy import random
 import collections
 
 def rand(natoms, radius, overlapping=True, factor=1.0):
@@ -51,7 +50,7 @@ def rand(natoms, radius, overlapping=True, factor=1.0):
 
 	scale = 2.0 * natoms**(1.0/3)
 
-	x,y,z = random.rand(natoms) * radius * scale, random.rand(natoms) * radius * scale, random.rand(natoms) * radius * scale
+	x,y,z = numpy.random.rand(natoms) * radius * scale, numpy.random.rand(natoms) * radius * scale, numpy.random.rand(natoms) * radius * scale
 
 	if type(radius) is float or type(radius) is int:
 		r = numpy.ones(natoms) * radius

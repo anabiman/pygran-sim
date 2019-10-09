@@ -43,14 +43,9 @@ See the README file in the top-level LAMMPS directory.
 
 '''
 
-import sys,traceback,types
+import sys, traceback
 import ctypes
-from os.path import dirname, abspath, join
-from inspect import getsourcefile
 import numpy as np
-import itertools
-from numpy.linalg import norm
-from scipy import spatial
 from mpi4py import MPI
 import os
 import glob
@@ -78,7 +73,7 @@ class liggghts:
   # detect if Python is using version of mpi4py that can pass a communicator
   try:
     from mpi4py import MPI
-  except:
+  except Exception:
     pass
 
   # create instance of LIGGGHTS
@@ -397,7 +392,7 @@ class DEMPy:
         with open(version_txt, 'r+') as fp:
           major, minor, _ = fp.readline().rstrip().split('.')
           self.__version__ = float(major + '.' + minor)
-      except:
+      except Exception:
         if not self.rank:
           print('Could not find LIGGGHTS version. Proceeding ... ')
         self.__version__ = 'unknown'
@@ -437,9 +432,6 @@ class DEMPy:
 
   def extract_fix(self,id,style,type,i=0,j=0):
     return self.lmp.extract_fix(id,style,type,i,j)  
-
-  def createParticles(self, type, style, *args):
-    self.lmp.createParticles(type, style, *args)
 
   def createDomain(self):
     """ Define the domain of the simulation """
@@ -490,10 +482,11 @@ class DEMPy:
         
         self.lmp.command('fix {} '.format(pddName) + 'group{}'.format(id) + ' particledistribution/discrete 67867967 1'.format(**ss) + ' {} 1.0'.format(randName))
 
-        if ss['style'] is 'multisphere':
-          itype = ss['style']
-        else:
-          itype = 'nve/{style}'.format(**ss)
+        # Do weneed the code block below?
+        # if ss['style'] is 'multisphere':
+        #   itype = ss['style']
+        # else:
+        #   itype = 'nve/{style}'.format(**ss)
 
         #Do NOT unfix randName! Will cause a memory corruption error
         self.pddName.append(pddName)
@@ -533,16 +526,17 @@ class DEMPy:
 
     # I think this is for creating tuples of lists, corresponding to many regions
     # This is prolly for inserting many species at the same time in different regions
-    # UPDATE: inserting multiple species not supported anyway in PyGran! ???
-    if isinstance(region[1], tuple):
-      targs = list(region[1])
-      targs.insert(0, region[0])
+    # UPDATE: inserting multiple species not supported anyway in PyGran! ??? So will
+    # comment the lines below
+    #if isinstance(region[1], tuple):
+    #  targs = list(region[1])
+    #  targs.insert(0, region[0])
 
-      tmp = region[1]
-      for i in range(len(tmp)):
-        targs[i+1] = tmp[i]
+    #  tmp = region[1]
+    #  for i in range(len(tmp)):
+    #    targs[i+1] = tmp[i]
 
-      region = tuple(targs)
+    #  region = tuple(targs)
 
     def insert_loc(self, id, value, vel, vel_type, region, mech, **ss):
       """ For multi-component system, this function can cause REAL *trouble*. For now, make sure components
@@ -612,8 +606,6 @@ class DEMPy:
     if species != 'all':
 
       species = int(species)
-
-      ss = self.pargs['species'][species - 1]
 
       if 'vel' not in args:
         args['vel'] = (0,0,0)
@@ -819,7 +811,9 @@ class DEMPy:
     if not self.rank:
       logging.info('Creating particles {} with args'.format(type) + (' {}' * len(args)).format(*args))
 
-    self.lmp.command('create_atoms {} {}'.format(type, style) +  (' {}' * len(args)).format(*args))
+    # my code: self.lmp.command('create_atoms {} {}'.format(type, style) +  (' {}' * len(args)).format(*args))
+    # new code below: ~ should be the same. Double check this.
+    self.lmp.createParticles(type, style, *args)
 
   def set(self, *args):
     """ Set group/atom attributes """

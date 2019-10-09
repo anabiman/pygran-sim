@@ -29,12 +29,12 @@ If not, see http://www.gnu.org/licenses . See also top-level README
 and LICENSE files.
 '''
 
-from .tools import find
 try:
 	from mpi4py import MPI
-except:
+except Exception:
 	pass # no MPI, no problem
 import os, glob
+
 
 def _find_number_models(src_dir, mtype='normal'):
 	""" Finds the total number of contact models available in the liggghts src dir 
@@ -101,12 +101,12 @@ def register(**args):
 	if not rank:
 
 		if 'stiffness' not in args:
-			raise('An analytical equation for stiffness must be specified.')
+			raise Exception('An analytical equation for stiffness must be specified.')
 		else:
 			args['stiffness'] = _parse(args['stiffness'])
 
 		if 'viscosity' not in args:
-			raise('An analytical equation for viscosity must be specified.')
+			raise Exception('An analytical equation for viscosity must be specified.')
 		else:
 			args['viscosity'] = _parse(args['viscosity'])
 
