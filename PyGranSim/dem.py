@@ -31,20 +31,22 @@ and LICENSE files.
 
 try:
   from mpi4py import MPI
-except:
+except Exception:
   MPI = None
 
 from importlib import import_module
 from datetime import datetime
 import os, sys
-from .tools import find, _setConfig
+from .tools import _setConfig
 from . import models
 import shutil
 
 try:
   from .. import __version__ 
-except:
+except Exception:
   __version__ = None
+
+__all__ = ['DEM']
 
 class DEM:
   """A generic class that handles communication for a DEM object in a way that
@@ -178,7 +180,7 @@ class DEM:
           logging.debug('Attempting to backup {} file'.format(scriptFile))
           try:
             shutil.copyfile(os.path.join(os.getcwd(), '..', scriptFile), '{}'.format(scriptFile.split('.')[0] + '-bk.py'))
-          except:
+          except Exception:
             logging.debug('Backup failed')
 
       else:
