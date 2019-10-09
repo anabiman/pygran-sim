@@ -689,9 +689,13 @@ class DEMPy:
 
             elif 'import' in self.pargs['mesh'][mesh]:
               if self.pargs['mesh'][mesh]['import']:
-                self.importMesh(mesh, self.pargs['mesh'][mesh]['file'], self.pargs['mesh'][mesh]['mtype'], self.pargs['mesh'][mesh]['id'], **self.pargs['mesh'][mesh]['args'])  
+                if self.pargs['mesh'][mesh]['args']:
+                  self.importMesh(mesh, self.pargs['mesh'][mesh]['file'], self.pargs['mesh'][mesh]['mtype'], self.pargs['mesh'][mesh]['id'], **self.pargs['mesh'][mesh]['args'])
+                else:
+                  self.importMesh(mesh, self.pargs['mesh'][mesh]['file'], self.pargs['mesh'][mesh]['mtype'], self.pargs['mesh'][mesh]['id'])
+
                 wallIsMesh = True
-              
+
       if wallIsMesh:
         self.setupWall(wtype='mesh')
     
