@@ -30,7 +30,7 @@ import glob, shutil, re, os, sys
 from distutils.command.install import install
 from distutils.command.clean import clean
 
-# Extract metadata from simulation._version
+# Extract metadata from ._version
 with open(os.path.join('PyGranSim', '_version.py'), 'r') as fp:
 	for line in fp.readlines():
 		if '__version__' in line:
