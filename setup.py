@@ -26,7 +26,7 @@
 
 from setuptools import setup, find_packages
 import subprocess
-import glob, shutil, re, os, sys
+import glob, shutil, os, sys
 from distutils.command.install import install
 from distutils.command.clean import clean
 
@@ -104,6 +104,16 @@ class LIGGGHTS(Track):
 			sys.stdout.write('\nInstallation of LIGGGHTS-PUBLIC complete\n')
 			os.chdir(os.path.join('..','..'))
 
+class Clean(clean):
+
+        def run(self):
+                for ddir in ['build', 'dist', 'PyGranSim.egg-info']: 
+                        if os.path.isdir(ddir):
+                                print('Deleting ' + os.path.abspath(ddir))
+                                shutil.rmtree(ddir)
+
+                super().run()
+
 setup(
 	name = "PyGranSim",
 	version = __version__,
@@ -131,6 +141,6 @@ setup(
 			"Operating System :: POSIX :: Linux"
 	],
 
-	cmdclass = {'build_liggghts': LIGGGHTS},
+	cmdclass = {'build_liggghts': LIGGGHTS, 'clean': Clean},
 	zip_safe = False
 )
