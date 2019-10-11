@@ -1,6 +1,7 @@
 # Welcome to the PyGranSim webpage!
 [//]: # (Badges)
 [![CircleCI](https://circleci.com/gh/Andrew-AbiMansour/PyGranSim.svg?style=shield)](https://circleci.com/gh/Andrew-AbiMansour/PyGranSim)
+[![Total alerts](https://img.shields.io/lgtm/alerts/g/Andrew-AbiMansour/PyGranParams.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/Andrew-AbiMansour/PyGranParams/alerts/)
 [![codecov](https://codecov.io/gh/Andrew-AbiMansour/PyGranSim/branch/master/graph/badge.svg)](https://codecov.io/gh/Andrew-AbiMansour/PyGranSim/branch/master)
 
 PyGranSim is part of the PyGran project, an open-source toolkit primarily designed for analyzing DEM simulation data. In addition to performing basic and custom post-processing, PyGran enables running DEM simulation with the PyGranSim module. For more info on PyGran, see [here](http://www.pygran.org).
