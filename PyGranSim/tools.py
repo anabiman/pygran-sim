@@ -82,10 +82,14 @@ def pygranToLIGGGHTS(**material):
 def find(fname, path):
 	""" Finds a filename (fname) along the path `path' 
 
-	@fname: string specifying filename
-	@path: string specifying the search path 
+	:param fname: filename
+	:type fname: str
 
-	returns the absolute path of the fname (if found) as a string
+	:param path: search path
+	:type path: str
+
+	:return: absolute path of the fname if found, else None
+	:rtype: str/None
 	"""
 	for root, dirs, files in os.walk(path):
 		if fname in files:
@@ -96,9 +100,12 @@ def find(fname, path):
 def run(program):
 	""" Unix only: launches an executable program available in the PATH environment variable.
 
-	@program: string specifying the executable to search for
+	:param program: name of the executable to search for
+	:type program: str
 
-	returns 0 if successful and 1 otherwise. """
+	:return: 0 if successful and 1 otherwise
+	:rtype: bool
+	 """
 	paths = os.environ['PATH']
 
 	for path in paths.split(':'):
@@ -127,7 +134,7 @@ def configure(path, version=None, src=None):
 	_setLIGGGHTS(path, version, src)
 
 def _setLIGGGHTS(path, version=None, src=None):
-	""" Write libliggghts path to .config file
+	""" Write libliggghts path to ~/.config/liggghts.ini file
 
         :param path: path to LIGGGHTS library
         :type path: str
@@ -139,9 +146,10 @@ def _setLIGGGHTS(path, version=None, src=None):
         :type src: str
 	"""
 
-	wdir, _ = os.path.abspath(__file__).split(os.path.basename(__file__))
+	_configdir = os.path.join(os.path.expanduser("~"), '.config', 'PyGran')
+	liggghts_ini = os.path.join(_configdir, 'liggghts.ini')
 
-	with open(wdir + '../.config', 'w') as fp:
+	with open(liggghts_ini, 'w') as fp:
 
 		fp.seek(0,0)
 		fp.write('library=' + path)
@@ -174,7 +182,7 @@ def _findEngines(engine):
 	return engines
 
 def _setConfig(wdir, engine):
-	""" Reads/writes DEM library to .config file
+	""" Reads/writes DEM library to config .ini file
 
 	:param wdir: working directory
 	:type wdir: str
@@ -185,16 +193,24 @@ def _setConfig(wdir, engine):
 	:return: path to library, source, and version of DEM library
 	:rtype: tuple
 
-	.. todo:: Change the place .config file is written (better use config.ini in ~/.config)
+	.. todo: Make this function platform and liggghts independent
 	"""
 	library, src, version = '', None, None
-	file = wdir + '../.config'
 
-	if os.path.isfile(file):
+	_configdir = os.path.join(os.path.expanduser("~"), '.config', 'PyGran')
+	liggghts_ini = os.path.join(_configdir, 'liggghts.ini')
 
-		if os.stat(file).st_size: # file not empty
+	# Make sure ~/.config/PyGran dir exists else create it
+	if not os.path.isdir(_configdir):
+		if not os.path.isdir(os.path.join(os.path.expanduser("~"), '.config')):
+			os.mkdir(os.path.join(os.path.expanduser("~"), '.config'))
+		os.mkdir(_configdir)
 
-			with open(wdir + '../.config', 'r+') as fp: # r+ is for reading and writing
+	if os.path.isfile(liggghts_ini):
+
+		if os.stat(liggghts_ini).st_size: # file not empty
+
+			with open(liggghts_ini, 'r+') as fp: # r+ is for reading and writing
 				for line in fp.readlines():
 					if 'library=' in line:
 						library = line.split('=')[-1].rstrip()
@@ -211,11 +227,11 @@ def _setConfig(wdir, engine):
 
 			return library, src, version
 
-	with open(wdir + '../.config', 'w') as fp:
+	with open(liggghts_ini, 'w') as fp:
 		library = find('lib' + engine + '.so', '/')
 
 		if library:
-			print('No config file found. Creating one for {} in {}'.format(library, os.path.abspath(file)))
+			print('No config file found. Creating one for {} in {}'.format(library, os.path.abspath(liggghts_ini)))
 			_setLIGGGHTS(library)
 		else:
 			print('No installation of {} was found. Make sure your selected DEM engine is properly installed first.'.format(engine))
