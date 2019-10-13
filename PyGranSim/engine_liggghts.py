@@ -347,7 +347,7 @@ class DEMPy:
     self.path = os.getcwd()
     self.nSS = len(self.pargs['species'])
     self.output = self.pargs['output']
-    self._dir,_ = os.path.abspath(__file__).split(os.path.basename(__file__))
+    self._configdir =  os.path.join(os.path.expanduser("~"), '.config', 'PyGran')
     self._monitor = [] # a list of tuples of (varname, filename) to monitor
 
     if '__version__' in pargs:
@@ -400,8 +400,9 @@ class DEMPy:
 
       # Write version + src dir to config file if it exists
       if not self.rank:
-        if os.path.isfile(self._dir + '../.config'):
-          with open(self._dir + '../.config', 'a+') as fp:
+        liggghts_ini = os.path.join(self._configdir, 'liggghts.ini')
+        if os.path.isfile(liggghts_ini):
+          with open(liggghts_ini, 'a+') as fp:
             fp.write('\nsrc={}'.format(self.__liggghts__))
             fp.write('\nversion={}'.format(self.__version__))
       if self.__version__ >= 3.6:

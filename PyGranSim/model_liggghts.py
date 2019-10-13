@@ -69,8 +69,11 @@ def _parse(exp):
 def register(**args):
 	""" Generates a c++ header file for a contact model and compiles it during runtime.
 
-	@stiffness: analytical form (str) of the stiffness = force / deltan
-	@viscosity: analytical form (str) of the viscosity term (force = viscosity * vn).
+	:param stiffness: analytical form of the stiffness = force / deltan
+	:type stiffness: str
+
+	:param viscosity: analytical form of the viscosity term (force = viscosity * vn).
+	:type viscosity: str
 
 	Material parameters that can be used:
 	Yeff: effective Young's modulus
@@ -84,12 +87,11 @@ def register(**args):
 	kn: stiffness
 	PI: constant (3.14 ...)
 
-	e.g. register(name='my_model',
-		stiffness = '6./15.*sqrt(reff)*(Yeff)*pow(15.*meff*charVel*charVel/(16.*sqrt(reff)*Yeff),0.2)',
-		viscosity = 'sqrt(4.*meff*kn*restLogChosen*restLogChosen/(restLogChosen*restLogChosen+PI*PI))')
+	:example: register(name='my_model',
+		  stiffness = '6./15.*sqrt(reff)*(Yeff)*pow(15.*meff*charVel*charVel/(16.*sqrt(reff)*Yeff),0.2)',
+		  viscosity = 'sqrt(4.*meff*kn*restLogChosen*restLogChosen/(restLogChosen*restLogChosen+PI*PI))')
 
-		produces a template header file for the spring-dashpot model called 'my_model'.
-
+		  produces a template header file for the spring-dashpot model called 'my_model'.
 	"""
 
 	# Make sure everything is done on the master processor
@@ -119,11 +121,12 @@ def register(**args):
 		if 'mtype' not in args:
 			args['mtype'] = 'normal'
 
-		_dir, _ = __file__.split(__name__.split('PyGranSim.')[-1] +'.py')
+		_configdir = os.path.join(os.path.expanduser("~"), '.config', 'PyGran')
+		liggghts_ini = os.path.join(_configdir, 'liggghts.ini')
 
 		if 'src_dir' not in args:
-			if os.path.isfile(_dir + '../.config'):
-				with open(_dir + '../.config', 'r+') as fp:
+			if os.path.isfile(liggghts_ini):
+				with open(liggghts_ini, 'r+') as fp:
 					fp.readline(); fp.readline();
 					args['src_dir'] = fp.readline().split('=')[-1].rstrip()
 			else:
@@ -131,12 +134,15 @@ def register(**args):
 
 		# find contact model number
 		nModels = _find_number_models(mtype=args['mtype'], src_dir=args['src_dir'])
+		nContactModels = 100
 
-		for number in range(100): # more than 100 contact models? WTF! TODO: Make this better automated
+		for number in range(nContactModels): # more than 100 contact models? WTF! TODO: Make this better automated
 			if str(number) not in nModels:
 				args['number'] = number
 				print(number, nModels)
 				break
+
+		_dir, _ = __file__.split(__name__.split('PyGranSim.')[-1] +'.py')
 
 		with open(_dir + 'model_template.h', 'r') as fp:
 			lines = fp.readlines()
