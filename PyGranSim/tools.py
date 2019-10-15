@@ -1,8 +1,8 @@
 '''
   Created on April 25, 2016
-  @author: Andrew Abi-Mansour
+  Author: Andrew Abi-Mansour
 
-  This is the 
+  This is the::
 
   ██████╗ ██╗   ██╗ ██████╗ ██████╗  █████╗ ███╗   ██╗
   ██╔══██╗╚██╗ ██╔╝██╔════╝ ██╔══██╗██╔══██╗████╗  ██║
@@ -27,6 +27,7 @@
 '''
 
 import os
+import sys
 
 def dictToTuple(**args):
 	""" Converts a dictionary (args) to a tuple 
