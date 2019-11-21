@@ -204,13 +204,15 @@ class DEM:
     # Create links to the particle/mesh files (easily accessible to the user)
     if 'pfile' in self.pargs['traj']:
       if self.pargs['traj']['pfile']:
-        self.pfile = self.pargs['output'] + '/traj/' + self.pargs['traj']['pfile']
+        self.pfile = os.path.join(self.pargs['output'], 'traj', self.pargs['traj']['pfile'])
+        self.pargs['traj']['pfile'] = self.pfile 
       else:
         self.pfile = None
 
     if 'mfile' in self.pargs['traj']:
       if self.pargs['traj']['mfile']:
-        self.mfile = self.pargs['output'] + '/traj/' + self.pargs['traj']['mfile']
+        self.mfile = os.path.join(self.pargs['output'], 'traj', self.pargs['traj']['mfile'])
+        self.pargs['traj']['mfile'] = self.mfile
       else:
         self.mfile = None
 
