@@ -491,7 +491,7 @@ class DEMPy(object):
         else:
           args = ()
 
-        if 'radius' in ss:
+        if ss['style'] is 'sphere':
           radius = ss['radius']
 
           if not isinstance(radius, tuple):
@@ -527,13 +527,16 @@ class DEMPy(object):
         else:
           self.lmp.command('fix {} '.format(randName) + 'group{}'.format(id) + ' particletemplate/{style} 15485867 volume_limit {vol_lim} atom_type {id} density constant {density}'.format(**ss) + (' {}' * len(args)).format(*args))
 
-        if radius[0] == 'constant':
-          self.lmp.command('fix {} '.format(pddName) + 'group{}'.format(id) + ' particledistribution/discrete 67867967 1'.format(**ss) + ' {} 1.0'.format(randName))
-        else:
-          randNames_weights = [[randNames[i], weights[i]] for i in range(len(randNames))]
-          randNames_weights = tuple([i for items in randNames_weights for i in items])
+        if ss['style'] is 'sphere':
+          if radius[0] == 'constant':
+            self.lmp.command('fix {} '.format(pddName) + 'group{}'.format(id) + ' particledistribution/discrete 67867967 1'.format(**ss) + ' {} 1.0'.format(randName))
+          else:
+            randNames_weights = [[randNames[i], weights[i]] for i in range(len(randNames))]
+            randNames_weights = tuple([i for items in randNames_weights for i in items])
 
-          self.lmp.command('fix {} '.format(pddName) + 'group{}'.format(id) + ' particledistribution/discrete 15485867 '.format(**ss) + str(len(randNames)) + (' {}' * len(randNames_weights)).format(*randNames_weights))
+            self.lmp.command('fix {} '.format(pddName) + 'group{}'.format(id) + ' particledistribution/discrete 15485867 '.format(**ss) + str(len(randNames)) + (' {}' * len(randNames_weights)).format(*randNames_weights))
+        else:
+            self.lmp.command('fix {} '.format(pddName) + 'group{}'.format(id) + ' particledistribution/discrete 67867967 1'.format(**ss) + ' {} 1.0'.format(randName))
 
         # Do we need the code block below?
         # if ss['style'] is 'multisphere':
@@ -602,7 +605,7 @@ class DEMPy(object):
       if not self.rank:
         logging.info('Inserting particles for species {}'.format(id+1))
 
-      seed = 32452843
+      seed = RandPrime().gen()
       name = np.random.randint(0,1e8)
 
       randName = 'insert' + '{}'.format(np.random.randint(0,10**6))
@@ -1020,7 +1023,7 @@ class DEMPy(object):
         if 'id' in ss and 'wall' not in ss: # dont count mesh wall(s)
           if ss['style'] == 'sphere':
             spheres.append('{}'.format(i+1))
-          elif ss['style'] == 'multisphere':
+          elif ss['style'].startswith('multisphere'):
             multi.append('{}'.format(i+1))
 
       if len(spheres):
