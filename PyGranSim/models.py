@@ -49,6 +49,8 @@ def template_tablet(nspheres, radius, length):
 	radius "radius" and height "length" constituting "nspheres" spheres.
 	This is used for multisphere simulations.
 
+	.. todo:: Move this function elsewhere.
+
 	:param nspheres: number of spheres each tablet consists of
 	:type nspheres: int
 	:param radius: particle radius
@@ -65,6 +67,25 @@ def template_tablet(nspheres, radius, length):
 
 	for i in range(nspheres):
 		ms = ms + ((2 * radius - delta ) * i, 0, 0, radius,)
+
+	ms = ms + ('type 1',)
+
+	return ms
+
+def template_multisphere(func):
+	""" This function creates a generic multi-sphere particle
+	based on a user-supplied function.
+
+	:param func: returns a list of tuples: [(x1,y1,z1,radius1), ...]
+	:type func: function
+	"""
+
+	parts = func()
+	nspheres = len(parts)
+	ms = ('nspheres {}'.format(nspheres), 'ntry 1000000 spheres')
+
+	for part in parts:
+		ms = ms + part
 
 	ms = ms + ('type 1',)
 
@@ -219,7 +240,7 @@ class Model(object):
 						if isinstance(ss['radius'], list):
 							ss['radius'] = ss['radius'][self.color]
 
-						if ss['style'] is 'multisphere':
+						if ss['style'] is 'multisphere/tablet':
 
 							# user might have defined the length and nspheres or maybe just passed args
 							if 'length' in ss:
@@ -235,12 +256,25 @@ class Model(object):
 									raise ValueError('args cannot be defined along with nspheres/length for multisphere.')
 								elif isinstance(ss['args'], list):
 									ss['args'] = ss['args'][self.color]
+						elif ss['style'] is 'multisphere':
+							raise NotImplementedError('SSMP mode not yet supported for a custom multisphere class.')
 
 				ss['material'] = pygranToLIGGGHTS(**ss['material'])
 
-				if ss['style'] is 'multisphere' and 'args' not in ss:
-					ss['args'] = template_tablet(ss['nspheres'], ss['radius'], ss['length'])
-					del ss['radius'], ss['length']
+				if ss['style'] == 'multisphere/tablet':
+					# Now we can treat this as if it's a general multisphere case
+					ss['style'] = 'multisphere'
+					if 'args' not in ss:
+						if 'nspheres' not in ss or 'radius' not in ss or 'length' not in ss:
+							raise ValueError('With multisphere/tablet, nspheres, radius, and length must be supplied.')
+						ss['args'] = template_tablet(ss['nspheres'], ss['radius'], ss['length'])
+						del ss['radius'], ss['length']
+
+				elif ss['style'] == 'multisphere' and 'args' not in ss:
+					if 'function' not in ss:
+						raise ValueError('style multisphere requires "function" definition.')
+					ss['args'] = template_multisphere(ss['function'])
+
 
 			# Use 1st component to find all material params ~ hackish!!! 
 			ss = self.params['species'][0]
@@ -294,7 +328,7 @@ class Model(object):
 		ms = False
 		if 'species' in self.params:
 			for ss in self.params['species']:
-				if ss['style'] is 'multisphere':
+				if ss['style'].startswith('multisphere'):
 					ms = True
 
 		traj = {'sel': 'all', 'freq': 1000, 'dir': 'traj', 'style': 'custom', 'pfile': 'traj.dump', \
