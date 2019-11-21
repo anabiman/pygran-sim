@@ -52,8 +52,31 @@ import glob
 import sys
 from importlib import import_module
 from .tools import find, dictToTuple
+import itertools
 
-class liggghts:
+class RandPrime(object):
+  """
+  Random prime number generator with memory. The idea is to generate a unique prime number
+  for LIGGGHTS.
+  """
+  hist = []
+
+  def isPrime(self, n):
+    return n > 1 and all(n%i for i in itertools.islice(itertools.count(2), int(np.sqrt(n)-1)))
+
+  def gen(self):
+    """ Hackish ~ silly way of LIGGGHTS using prime numbers > 10000 for unfounded reasons """
+    low, high = 1+1e4, 1e8
+
+    while True:
+      randn = np.random.randint(low, high)
+      if self.isPrime(randn) and randn not in RandPrime.hist:
+        break
+
+    RandPrime.hist.append(randn)
+    return randn
+
+class Liggghts:
   """
   A class that provides API-like access to LIGGGHTS-PUBLIC
 
@@ -78,8 +101,6 @@ class liggghts:
 
   # create instance of LIGGGHTS
   def __init__(self, library=None, style='spherical', dim=3, units='si', path=None, cmdargs=[], comm=None, ptr=None):
-    # What is ptr used for?
-
     if library:
       if not comm.Get_rank():
         print("Using " + library + " as a shared library for DEM computations")
@@ -100,13 +121,13 @@ class liggghts:
       raise RuntimeError("Could not load LIGGGHTS dynamic library")
 
     # if no ptr provided, create an instance of LIGGGHTS
-    #   don't know how to pass an MPI communicator from PyPar
-    #   but we can pass an MPI communicator from mpi4py v2.0.0 and later
-    #   no_mpi call lets LIGGGHTS use MPI_COMM_WORLD
-    #   cargs = array of C strings from args
+    # don't know how to pass an MPI communicator from PyPar
+    # but we can pass an MPI communicator from mpi4py v2.0.0 and later
+    # no_mpi call lets LIGGGHTS use MPI_COMM_WORLD
+    # cargs = array of C strings from args
     # if ptr, then are embedding Python in LIGGGHTS input script
-    #   ptr is the desired instance of LIGGGHTS
-    #   just convert it to ctypes ptr and store in self.lmp
+    # ptr is the desired instance of LIGGGHTS
+    # just convert it to ctypes ptr and store in self.lmp
 
     if MPI._sizeof(MPI.Comm) == ctypes.sizeof(ctypes.c_int):
       MPI_Comm = ctypes.c_int
@@ -297,7 +318,7 @@ class liggghts:
   def scatter_atoms(self,name,type,count,data):
     self.lib.lammps_scatter_atoms(self.lmp, name, type, count, data)
 
-class DEMPy:
+class DEMPy(object):
   """A class that implements a python interface for DEM computations
 
   :param units: unit system (default 'si'). See `ref <https://www.cfdem.com/media/DEM/docu/units.html>`_.
@@ -372,7 +393,7 @@ class DEMPy:
 
       logging.info('Instantiating LIGGGHTS object')
 
-    self.lmp = liggghts(comm=self.split, library=library.strip(), cmdargs=['-log', 'liggghts.log'])
+    self.lmp = Liggghts(comm=self.split, library=library.strip(), cmdargs=['-log', 'liggghts.log'])
 
     if not self.rank:
       logging.info('Setting up problem dimensions and boundaries')
@@ -476,14 +497,45 @@ class DEMPy:
           if not isinstance(radius, tuple):
             radius = ('constant', radius)
 
-          self.lmp.command('fix {} '.format(randName) + 'group{}'.format(id) + ' particletemplate/{style} 15485867 volume_limit {vol_lim} atom_type {id} density constant {density} radius'.format(**ss) + (' {}' * len(radius)).format(*radius) \
-          + (' {}' * len(args)).format(*args))
+          if radius[0] == 'constant':
+            self.lmp.command('fix {} '.format(randName) + 'group{}'.format(id) + ' particletemplate/{style} 15485867 volume_limit {vol_lim} atom_type {id} density constant {density} radius'.format(**ss) + (' {}' * len(radius)).format(*radius) \
+            + (' {}' * len(args)).format(*args))
+          else:
+            randNames = []
+
+            if radius[0] == 'poly':
+              radii, weights = radius[1], radius[2]
+
+            if radius[0] == 'normal':
+              mean, std, npts = radius[1], radius[1] * radius[2], radius[3]
+              radii = np.random.normal(loc=mean, scale=std, size=npts)
+              weights = np.ones(len(radii)) / len(radii)
+
+            if radius[0] == 'lognormal':
+              mean, std, npts = np.log(radius[1]), np.abs(radius[2] * np.log(radius[1])), radius[3]
+              radii = np.random.lognormal(mean=mean, sigma=std, size=npts)
+              weights = np.ones(len(radii)) / len(radii)
+
+            RP = RandPrime()
+
+            for count, rad in enumerate(radii):
+              rad = ('constant', rad)
+              randNames.append(randName + count)
+              ss['_randn'] = RP.gen()
+              self.lmp.command('fix {} '.format(randNames[-1]) + 'group{}'.format(id) + ' particletemplate/{style} {_randn} volume_limit {vol_lim} atom_type {id} density constant {density} radius'.format(**ss) + (' {}' * len(rad)).format(*rad) \
+              + (' {}' * len(args)).format(*args))
         else:
           self.lmp.command('fix {} '.format(randName) + 'group{}'.format(id) + ' particletemplate/{style} 15485867 volume_limit {vol_lim} atom_type {id} density constant {density}'.format(**ss) + (' {}' * len(args)).format(*args))
-        
-        self.lmp.command('fix {} '.format(pddName) + 'group{}'.format(id) + ' particledistribution/discrete 67867967 1'.format(**ss) + ' {} 1.0'.format(randName))
 
-        # Do weneed the code block below?
+        if radius[0] == 'constant':
+          self.lmp.command('fix {} '.format(pddName) + 'group{}'.format(id) + ' particledistribution/discrete 67867967 1'.format(**ss) + ' {} 1.0'.format(randName))
+        else:
+          randNames_weights = [[randNames[i], weights[i]] for i in range(len(randNames))]
+          randNames_weights = tuple([i for items in randNames_weights for i in items])
+
+          self.lmp.command('fix {} '.format(pddName) + 'group{}'.format(id) + ' particledistribution/discrete 15485867 '.format(**ss) + str(len(randNames)) + (' {}' * len(randNames_weights)).format(*randNames_weights))
+
+        # Do we need the code block below?
         # if ss['style'] is 'multisphere':
         #   itype = ss['style']
         # else:
@@ -502,7 +554,8 @@ class DEMPy:
     :param species: species id ('all', or 1, 2, ... )
     :type param: int or str
 
-    :param value:
+    :param value: number of particles, or volume fraction, or mass fraction, or etc.
+    :type value: float
 
     :param region: define region via ('shape', (xmin, xmax, ymin, ymax, zmin, zmax)) or ('shape', xmin, xmax, ymin, ymax, zmin, zmax)
     :type region: tuple
@@ -521,7 +574,7 @@ class DEMPy:
         region = ('cylinder', self.pargs['cylinder'])
       else:
         region = ('block', self.pargs['box'])
-        
+ 
       region = tuple([region[0]] + [i for i in region[1:][0]])
       args['region'] = region
 
@@ -543,7 +596,7 @@ class DEMPy:
       """ For multi-component system, this function can cause REAL *trouble*. For now, make sure components
       are inserted consecutively or all at once.
 
-      TODO: let the user override volume_limit
+      .. todo:: Let the user override volume_limit.
       """
 
       if not self.rank:
@@ -577,7 +630,9 @@ class DEMPy:
         if mech is 'nparticles':
           value += self.lmp.get_natoms()
 
-        self.lmp.command('fix {} group{} insert/rate/region seed 123481 distributiontemplate {} {} {}'.format(randName, id, self.pddName[id], mech, value) + \
+        randPnum = RandPrime().gen()
+
+        self.lmp.command('fix {} group{} insert/rate/region seed {} distributiontemplate {} {} {}'.format(randName, id, randPnum, self.pddName[id], mech, value) + \
           ' particlerate {rate} insert_every {freq} overlapcheck yes all_in {all_in}'.format(**ss) + ' vel {}'.format(vel_type) \
           + (' {}' * len(vel)).format(*vel)  + (' {}' * len(ss['args'])).format(*ss['args']) + ' region {} ntry_mc 10000'.format(name) )
       elif ss['insert'] == 'by_pack':
@@ -598,7 +653,9 @@ class DEMPy:
 
         value += self.lmp.get_natoms()
 
-        self.lmp.command('fix {} group{} insert/rate/region seed 123481 distributiontemplate {} {} {}'.format(randName, id, self.pddName[id], mech, value) + \
+        randPnum = RandPrime().gen()
+
+        self.lmp.command('fix {} group{} insert/rate/region seed {} distributiontemplate {} {} {}'.format(randName, id, randPnum, self.pddName[id], mech, value) + \
           ' {rate_type} {rate} insert_every {freq} overlapcheck yes all_in {all_in}'.format(**ss) + ' vel {}'.format(vel_type) \
           + (' {}' * len(vel)).format(*vel)  + (' {}' * len(ss['args'])).format(*ss['args']) + ' region {} ntry_mc 10000'.format(name))
 
@@ -625,8 +682,16 @@ class DEMPy:
 
   def run(self, nsteps, dt=None, itype=None):
     """ Runs a simulation for number of steps specified by the user
-     @itype = sphere (rotational motion on) or rigid_sphere (rotational motion off)
-     @dt = timestep"""
+
+     :param nsteps: number of steps the integrator should take
+     :type nsteps: int
+
+     :param itype: specifies integrator type: 'sphere' (rotational motion on) or 'rigid_sphere' (rotational motion off)
+     :type itype: str
+     
+     :param dt: timestep
+     :type dt: float
+    """
     
     name = self.setupIntegrate(itype=itype)
 
@@ -713,7 +778,7 @@ class DEMPy:
 
     This function can be called only ONCE for setting up all mesh walls (restriction from LIGGGHTS)
 
-    TODO: support additional keywords (shear, etc.) for primitive walls
+    .. todo:: Support additional keywords (shear, etc.) for primitive walls
     """
 
     gran = 'gran' # VERY HACKISH
@@ -835,7 +900,13 @@ class DEMPy:
 
       for ss in params['species']:
         if 'radius' in ss:
-          radius = max(radius, ss['radius'][1])
+          if isinstance(ss['radius'], tuple):
+            if ss['radius'][0] == 'poly':
+              radius = max(radius, max(ss['radius'][1]))
+            else:
+              radius = max(radius, ss['radius'][1])
+          else:
+            radius = max(radius, ss['radius'])
 
       params['nns_skin'] = radius * 4
 
@@ -931,7 +1002,7 @@ class DEMPy:
   def setupIntegrate(self, itype=None, group=None):
     """
     Specify how Newton's eqs are integrated in time. MUST BE EXECUTED ONLY ONCE.
-    TODO: extend this to SQ particles
+    .. todo:: Extend this to super-quadric particles
     """
     if not self.rank:
       logging.info('Setting up integration scheme parameters')
@@ -1232,3 +1303,9 @@ class DEMPy:
     """ Destructor
     """
     pass
+
+  def close(self):
+    self.lmp.close()
+
+  def __exit__(self, exc_type, exc_value, traceback):
+    self.close()
