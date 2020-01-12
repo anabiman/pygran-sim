@@ -40,9 +40,10 @@ import os, sys
 from .tools import _setConfig
 from . import models
 import shutil
+import logging
 
 try:
-  from .. import __version__ 
+  from ._version import __version__
 except Exception:
   __version__ = None
 
@@ -155,15 +156,13 @@ class DEM:
         
     os.chdir(self.pargs['output'])
 
-    self.dem = module.DEMPy(self.split, self.library, **self.pargs) # logging module imported here  
+    logging.basicConfig(filename='pygran.log', format='%(asctime)s:%(levelname)s: %(message)s', level=logging.DEBUG)
+
+    self.dem = module.DEMPy(self.split, self.library, **self.pargs)
 
     if not self.rank:
-      global logging
 
-      logging = import_module(name='logging')
-      logging.basicConfig(filename='dem.log', format='%(asctime)s:%(levelname)s: %(message)s', level=logging.DEBUG)
-
-      logging.info('Initializing simulation with PyGran version {}'.format(__version__))
+      logging.info('Initializing simulation with PyGranSim version {}'.format(__version__))
       logging.info("Initializing MPI for a total of {} cores".format(self.tProcs))
 
       if self.nSim > 1:
