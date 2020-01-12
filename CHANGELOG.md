@@ -12,3 +12,14 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - CHANGELOG for version logging
 - CircleCI config for continuous integration
 - Added License file
+
+## [1.0.1]
+### Added
+
+- Version printed to log file
+
+## [1.0.2]
+### Changed
+
+- Log filename from 'dem' to 'pygran'
+
