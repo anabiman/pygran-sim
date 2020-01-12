@@ -53,6 +53,7 @@ import sys
 from importlib import import_module
 from .tools import find, dictToTuple
 import itertools
+import logging
 
 class RandPrime(object):
   """
@@ -375,12 +376,6 @@ class DEMPy(object):
       self.__version__ = self.pargs['__version__']
 
     if not self.rank:
-      global logging
-
-      logging = import_module(name='logging')
-
-      logging.basicConfig(filename='pygran.log', format='%(asctime)s:%(levelname)s: %(message)s', level=logging.DEBUG)
-
       logging.info("Working in {}".format(self.path))
       logging.info('Creating i/o directories')
 
