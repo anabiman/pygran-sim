@@ -20,6 +20,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [1.0.2]
 ### Changed
-
 - Log filename from 'dem' to 'pygran'
 
+### Removed
+- generator module
