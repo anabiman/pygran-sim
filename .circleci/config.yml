@@ -3,8 +3,8 @@ orbs:
   codecov: codecov/codecov@1.0.5
 jobs:
   build:
-    machine:
-      image: ubuntu-1604:201903-01
+    docker:
+      - image: circleci/python:3.7.1
 
     working_directory: ~/repo
 
@@ -14,13 +14,6 @@ jobs:
     steps:
 
       - checkout # checkout src code to working dir
-
-      - run:
-          name: install python 3.7
-          command: |
-            pyenv global 3.7.0
-            sudo python -m pip install --upgrade pip setuptools wheel
-            sudo python -m pip install pipenv
 
       - run:
          name: install global deps
