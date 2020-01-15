@@ -16,7 +16,7 @@ def test_run():
 		'box':  (-1, 1, -1 , 1, -1, 1), # simulation box size
 
 		# Define component(s)
-		'species': ({'material': organic, 'style': 'multisphere', 'nspheres': 12, 'radius': 2e-2, 'length': 1e-1},
+		'species': ({'material': organic, 'style': 'multisphere/tablet', 'nspheres': 12, 'radius': 2e-2, 'length': 1e-1},
 					),
 
 		# Set skin distance to be 1/4 particle diameter 
