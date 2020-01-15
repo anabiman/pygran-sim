@@ -1,6 +1,5 @@
 import PyGranSim as simulation
 from PyGranParams import organic
-import pytest
 
 def test_run():
 
@@ -31,21 +30,21 @@ def test_run():
 	}
 
 	# Create an instance of the DEM class
-	sim = simulation.DEM(**params)
+	with simulation.DEM(**params) as sim:
 
-	# Setup a primitive wall along the xoy plane at z=0
-	sim.setupWall(species=1, wtype='primitive', plane='zplane', peq = 0.0)
+		# Setup a primitive wall along the xoy plane at z=0
+		sim.setupWall(species=1, wtype='primitive', plane='zplane', peq = 0.0)
 
-	# Insert 200 particles
-	insert = sim.insert(species=1, value=200, freq=params['nsteps']/3)
-	sim.run(params['nsteps'], params['dt'])
-	sim.remove(insert)
+		# Insert 200 particles
+		insert = sim.insert(species=1, value=200, freq=params['nsteps']/3)
+		sim.run(params['nsteps'], params['dt'])
+		sim.remove(insert)
 
-	# Move wall at constant speed
-	moveZ = sim.moveMesh(name='wallZ', linear=(0, 0, -0.03))
-	sim.run(params['nsteps'] * 2, params['dt'])
-	sim.remove(moveZ)
+		# Move wall at constant speed
+		moveZ = sim.moveMesh(name='wallZ', linear=(0, 0, -0.03))
+		sim.run(params['nsteps'] * 2, params['dt'])
+		sim.remove(moveZ)
 
-	# Relax the system
-	moveZ = sim.moveMesh(name='wallZ', linear=(0, 0, 0.01))
-	sim.run(params['nsteps'] * 2, params['dt'])
+		# Relax the system
+		moveZ = sim.moveMesh(name='wallZ', linear=(0, 0, 0.01))
+		sim.run(params['nsteps'] * 2, params['dt'])

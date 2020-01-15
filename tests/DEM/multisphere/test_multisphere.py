@@ -24,7 +24,7 @@ def test_run():
 
 		# Timestep
 		'dt': 2e-7,
-	 
+
 		# Apply gravitional force in the negative direction along the z-axis
 		'gravity': (9.81, 0, 0, -1),
 
@@ -32,31 +32,31 @@ def test_run():
 		'traj': {'pfile': 'particles.dump', 'mfile': 'tumbler*.vtk'},
 
 		# Stage runs [optional]
-		 'stages': {'insertion': 1e6, 'rotation': 1e6},
+		 'stages': {'insertion': 1e4, 'rotation': 1e4},
 
 		# Define mesh for rotating drum (trumbler)
 		'mesh': {
-		      'tumbler': {'file': 'mesh/tumbler.stl', 'mtype': 'mesh/surface/stress', 'material': organic, 'args': {'scale': 1e-3}},
+		      'tumbler': {'file': 'tests/DEM/multisphere/mesh/tumbler.stl', 'mtype': 'mesh/surface/stress', 'material': organic, 'args': {'scale': 1e-3}},
 		}
   	}
 
 	# Create an instance of the DEM class
-	sim = simulation.DEM(**params)
+	with simulation.DEM(**params) as sim:
 
-	# Insert 800 particles in a cylindrical region
-	insert = sim.insert(species=1, value=1, region=('cylinder', 'y', 0, 0, 0.7, -0.4, 0.4)) #, args={'orientation': 'random'})
+		# Insert 800 particles in a cylindrical region
+		insert = sim.insert(species=1, value=800, region=('cylinder', 'y', 0, 0, 0.7, -0.4, 0.4), args={'orientation': 'random'})
 
-	# Add viscous force
-	air_resistance = sim.addViscous(species=1, gamma=0.1)
+		# Add viscous force
+		air_resistance = sim.addViscous(species=1, gamma=0.1)
 
-	# Run insertion stage
-	sim.run(params['stages']['insertion'], params['dt'])
+		# Run insertion stage
+		sim.run(params['stages']['insertion'], params['dt'])
 
-	# Delete insertion fix
-	sim.remove(insert)
+		# Delete insertion fix
+		sim.remove(insert)
 
-	# Rotate mesh along the xoz plane
-	sim.moveMesh(name='tumbler', rotate=('origin', 0, 0, 0), axis=(0, 1, 0), period=5e-1)
+		# Rotate mesh along the xoz plane
+		sim.moveMesh(name='tumbler', rotate=('origin', 0, 0, 0), axis=(0, 1, 0), period=5e-1)
 
-	# Run rotation stage
-	sim.run(params['stages']['rotation'], params['dt'])
+		# Run rotation stage
+		sim.run(params['stages']['rotation'], params['dt'])
