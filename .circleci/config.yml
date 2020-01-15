@@ -51,8 +51,7 @@ jobs:
       - run:
           name: run code coverage
           command: |
-            echo 'export PATH=$HOME/.local/bin:$PATH' >> $BASH_ENV 
-            codecov
+            $HOME/.local/bin/codecov
 
       - codecov/upload:
           file: coverage.xml
