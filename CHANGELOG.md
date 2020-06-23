@@ -19,6 +19,9 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Version printed to log file
 
 ## [1.0.2]
+### Added
+- Keyword 'psd_style' (default: 'numberbased') to particle distribution
+
 ### Changed
 - Log filename from 'dem' to 'pygran'
 - Fixed bug (missing dimension for cylindrical boxes) in 'models' module 
