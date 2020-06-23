@@ -159,7 +159,7 @@ class Model(object):
 		if 'mesh' in self.params:
 			for mesh in self.params['mesh']:
 
-				# Make sure only mehs keywords supplied with files are counter, otherwise, they're args to the mesh wall!
+				# Make sure only mesh keywords supplied with files are counter, otherwise, they're args to the mesh wall!
 				if 'file' in self.params['mesh'][mesh]:
 					self.params['species'] += ({'material':self.params['mesh'][mesh]['material']},)
 					self.params['nSS'] += 1
