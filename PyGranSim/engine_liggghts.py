@@ -104,10 +104,10 @@ class Liggghts:
   def __init__(self, library=None, style='spherical', dim=3, units='si', path=None, cmdargs=[], comm=None, ptr=None):
     if library:
       if not comm.Get_rank():
-        print("Using " + library + " as a shared library for DEM computations")
+        logging.info("Using " + library + " as a shared library for DEM computations")
     else:
       if not comm.Get_rank():
-        print('No library supplies.')
+        print('No library supplied. Exiting')
       
       sys.exit()
 
@@ -478,6 +478,9 @@ class DEMPy(object):
         if 'vol_lim' not in ss:
           ss['vol_lim'] = 1e-20
 
+        if 'psd_style' not in ss:
+          ss['psd_style'] = 'numberbased'
+
         id = ss['id'] - 1
         self.lmp.command('group group{} type {}'.format(id, ss['id']))
 
@@ -524,14 +527,14 @@ class DEMPy(object):
 
         if ss['style'] is 'sphere':
           if radius[0] == 'constant':
-            self.lmp.command('fix {} '.format(pddName) + 'group{}'.format(id) + ' particledistribution/discrete 67867967 1'.format(**ss) + ' {} 1.0'.format(randName))
+            self.lmp.command('fix {} '.format(pddName) + 'group{}'.format(id) + ' particledistribution/discrete/{psd_style} 67867967 1'.format(**ss) + ' {} 1.0'.format(randName))
           else:
             randNames_weights = [[randNames[i], weights[i]] for i in range(len(randNames))]
             randNames_weights = tuple([i for items in randNames_weights for i in items])
 
-            self.lmp.command('fix {} '.format(pddName) + 'group{}'.format(id) + ' particledistribution/discrete 15485867 '.format(**ss) + str(len(randNames)) + (' {}' * len(randNames_weights)).format(*randNames_weights))
+            self.lmp.command('fix {} '.format(pddName) + 'group{}'.format(id) + ' particledistribution/discrete/{psd_style} 15485867 '.format(**ss) + str(len(randNames)) + (' {}' * len(randNames_weights)).format(*randNames_weights))
         else:
-            self.lmp.command('fix {} '.format(pddName) + 'group{}'.format(id) + ' particledistribution/discrete 67867967 1'.format(**ss) + ' {} 1.0'.format(randName))
+            self.lmp.command('fix {} '.format(pddName) + 'group{}'.format(id) + ' particledistribution/discrete/{psd_style} 67867967 1'.format(**ss) + ' {} 1.0'.format(randName))
 
         # Do we need the code block below?
         # if ss['style'] is 'multisphere':
