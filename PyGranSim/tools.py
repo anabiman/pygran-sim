@@ -1,4 +1,4 @@
-'''
+"""
   Created on April 25, 2016
   Author: Andrew Abi-Mansour
 
@@ -24,13 +24,14 @@
   received a copy of the GNU General Public License along with PyGran.
   If not, see http://www.gnu.org/licenses . See also top-level README
   and LICENSE files.
-'''
+"""
 
 import os
 import sys
 
+
 def dictToTuple(**args):
-	""" Converts a dictionary (args) to a tuple 
+    """ Converts a dictionary (args) to a tuple 
 
 	:param args: dictionary used mainly by liggghts API
 	:type args: dict
@@ -48,19 +49,20 @@ def dictToTuple(**args):
 	:rtype: tuple
 	"""
 
-	keys = args.keys()
-	vals = args.values()
+    keys = args.keys()
+    vals = args.values()
 
-	tup = ()
-	for pair in zip(keys, vals):
-		if isinstance(pair[1], tuple):
-			pair = (pair[0], ('{} ' * len(pair[1])).format(*pair[1]).strip())
-		tup = tup + pair
+    tup = ()
+    for pair in zip(keys, vals):
+        if isinstance(pair[1], tuple):
+            pair = (pair[0], ("{} " * len(pair[1])).format(*pair[1]).strip())
+        tup = tup + pair
 
-	return tup
+    return tup
+
 
 def pygranToLIGGGHTS(**material):
-        """ Transform a PyGran material database into a LIGGGHTS material dictionary
+    """ Transform a PyGran material database into a LIGGGHTS material dictionary
 
 	:param material: definition of material(s) used mainly by liggghts API
 	:type material: dict
@@ -69,19 +71,25 @@ def pygranToLIGGGHTS(**material):
 	:rtype: dict
  	"""
 
-        for key in material:
-                if key is 'youngsModulus' or key is 'poissonsRatio' or key is 'yieldPress':
-                        material[key] = (key, 'peratomtype', str(material[key]))
-                elif key is 'coefficientFriction' or key is 'coefficientRollingFriction' or key is 'cohesionEnergyDensity' \
-                        or key is 'coefficientRestitution' or key is 'coefficientRollingViscousDamping':
-                        material[key] = (key, 'peratomtypepair', str(material[key]))
-                elif key is 'characteristicVelocity':
-                        material[key] = (key, 'scalar', str(material[key]))
+    for key in material:
+        if key is "youngsModulus" or key is "poissonsRatio" or key is "yieldPress":
+            material[key] = (key, "peratomtype", str(material[key]))
+        elif (
+            key is "coefficientFriction"
+            or key is "coefficientRollingFriction"
+            or key is "cohesionEnergyDensity"
+            or key is "coefficientRestitution"
+            or key is "coefficientRollingViscousDamping"
+        ):
+            material[key] = (key, "peratomtypepair", str(material[key]))
+        elif key is "characteristicVelocity":
+            material[key] = (key, "scalar", str(material[key]))
 
-        return material
+    return material
+
 
 def find(fname, path):
-	""" Finds a filename (fname) along the path `path' 
+    """ Finds a filename (fname) along the path `path' 
 
 	:param fname: filename
 	:type fname: str
@@ -92,14 +100,15 @@ def find(fname, path):
 	:return: absolute path of the fname if found, else None
 	:rtype: str/None
 	"""
-	for root, dirs, files in os.walk(path):
-		if fname in files:
-			return os.path.join(root, fname)
+    for root, dirs, files in os.walk(path):
+        if fname in files:
+            return os.path.join(root, fname)
 
-	return None
+    return None
+
 
 def run(program):
-	""" Unix only: launches an executable program available in the PATH environment variable.
+    """ Unix only: launches an executable program available in the PATH environment variable.
 
 	:param program: name of the executable to search for
 	:type program: str
@@ -107,21 +116,22 @@ def run(program):
 	:return: 0 if successful and 1 otherwise
 	:rtype: bool
 	 """
-	paths = os.environ['PATH']
+    paths = os.environ["PATH"]
 
-	for path in paths.split(':'):
-		found = Tools.find(program, path)
+    for path in paths.split(":"):
+        found = Tools.find(program, path)
 
-		if found:
-			print('Launching {}'.format(found))
-			os.system(found + ' &')
-			return 0
+        if found:
+            print("Launching {}".format(found))
+            os.system(found + " &")
+            return 0
 
-	print('Could not find {} in {}'.format(program, paths))
-	return 1
+    print("Could not find {} in {}".format(program, paths))
+    return 1
+
 
 def configure(path, version=None, src=None):
-	""" Configures PyGran to use a specific DEM/engine library
+    """ Configures PyGran to use a specific DEM/engine library
 
 	:param path: path to library
 	:type path: str
@@ -132,10 +142,11 @@ def configure(path, version=None, src=None):
 	:param src: path to library source code
 	:type src: str
 	 """
-	_setLIGGGHTS(path, version, src)
+    _setLIGGGHTS(path, version, src)
+
 
 def _setLIGGGHTS(path, version=None, src=None):
-	""" Write libliggghts path to ~/.config/liggghts.ini file
+    """ Write libliggghts path to ~/.config/liggghts.ini file
 
         :param path: path to LIGGGHTS library
         :type path: str
@@ -147,22 +158,23 @@ def _setLIGGGHTS(path, version=None, src=None):
         :type src: str
 	"""
 
-	_configdir = os.path.join(os.path.expanduser("~"), '.config', 'PyGran')
-	liggghts_ini = os.path.join(_configdir, 'liggghts.ini')
+    _configdir = os.path.join(os.path.expanduser("~"), ".config", "PyGran")
+    liggghts_ini = os.path.join(_configdir, "liggghts.ini")
 
-	with open(liggghts_ini, 'w') as fp:
+    with open(liggghts_ini, "w") as fp:
 
-		fp.seek(0,0)
-		fp.write('library=' + path)
+        fp.seek(0, 0)
+        fp.write("library=" + path)
 
-		if src:
-			fp.write('\nsrc=' + src)
+        if src:
+            fp.write("\nsrc=" + src)
 
-		if version:
-			fp.write('\nversion=' + version)
+        if version:
+            fp.write("\nversion=" + version)
+
 
 def _findEngines(engine):
-	""" Searches for and lists all available libraries for a specific engine
+    """ Searches for and lists all available libraries for a specific engine
 
 	:param engine: DEM engine specification
 	:type engine: str
@@ -171,19 +183,24 @@ def _findEngines(engine):
 	:rtype: list
 	 """
 
-	engines = [os.path.join(root, engine) for root, dirs, files in os.walk('/') if engine in files]
+    engines = [
+        os.path.join(root, engine)
+        for root, dirs, files in os.walk("/")
+        if engine in files
+    ]
 
-	if engines:
-		print('Engine(s) found:')
-		for engine in engines:
-			print(engine)
-	else:
-		print('No engines found.')
+    if engines:
+        print("Engine(s) found:")
+        for engine in engines:
+            print(engine)
+    else:
+        print("No engines found.")
 
-	return engines
+    return engines
+
 
 def _setConfig(wdir, engine):
-	""" Reads/writes DEM library to config .ini file
+    """ Reads/writes DEM library to config .ini file
 
 	:param wdir: working directory
 	:type wdir: str
@@ -196,47 +213,65 @@ def _setConfig(wdir, engine):
 
 	.. todo: Make this function platform and liggghts independent
 	"""
-	library, src, version = '', None, None
+    library, src, version = "", None, None
 
-	_configdir = os.path.join(os.path.expanduser("~"), '.config', 'PyGran')
-	liggghts_ini = os.path.join(_configdir, 'liggghts.ini')
+    _configdir = os.path.join(os.path.expanduser("~"), ".config", "PyGran")
+    liggghts_ini = os.path.join(_configdir, "liggghts.ini")
 
-	# Make sure ~/.config/PyGran dir exists else create it
-	if not os.path.isdir(_configdir):
-		if not os.path.isdir(os.path.join(os.path.expanduser("~"), '.config')):
-			os.mkdir(os.path.join(os.path.expanduser("~"), '.config'))
-		os.mkdir(_configdir)
+    # Make sure ~/.config/PyGran dir exists else create it
+    if not os.path.isdir(_configdir):
+        if not os.path.isdir(os.path.join(os.path.expanduser("~"), ".config")):
+            os.mkdir(os.path.join(os.path.expanduser("~"), ".config"))
+        os.mkdir(_configdir)
 
-	if os.path.isfile(liggghts_ini):
+    if os.path.isfile(liggghts_ini):
 
-		if os.stat(liggghts_ini).st_size: # file not empty
+        if os.stat(liggghts_ini).st_size:  # file not empty
 
-			with open(liggghts_ini, 'r+') as fp: # r+ is for reading and writing
-				for line in fp.readlines():
-					if 'library=' in line:
-						library = line.split('=')[-1].rstrip()
-					elif 'src' in line:
-						src = line.split('=')[-1].rstrip()
-					elif 'version' in line:
-						version = float(line.split('=')[-1].rstrip())
+            with open(liggghts_ini, "r+") as fp:  # r+ is for reading and writing
+                for line in fp.readlines():
+                    if "library=" in line:
+                        library = line.split("=")[-1].rstrip()
+                    elif "src" in line:
+                        src = line.split("=")[-1].rstrip()
+                    elif "version" in line:
+                        version = float(line.split("=")[-1].rstrip())
 
-			# Make sure the library exists; else, find it somewhere else
-			if not os.path.isfile(library):
-				library = find('lib' + engine+ '.so', '/')
-				_setLIGGGHTS(library)
-				print('WARNING: Could not find user-specified library. Will use {} instead ...'.format(library))
+            # Make sure the library exists; else, find it somewhere else
+            if not os.path.isfile(library):
+                library = find("lib" + engine + ".so", "/")
+                _setLIGGGHTS(library)
+                print(
+                    "WARNING: Could not find user-specified library. Will use {} instead ...".format(
+                        library
+                    )
+                )
 
-			return library, src, version
+            return library, src, version
 
-	with open(liggghts_ini, 'w') as fp:
-		library = find('lib' + engine + '.so', '/')
+    with open(liggghts_ini, "w") as fp:
+        library = find("lib" + engine + ".so", "/")
 
-		if library:
-			print('No config file found. Creating one for {} in {}'.format(library, os.path.abspath(liggghts_ini)))
-			_setLIGGGHTS(library)
-		else:
-			print('No installation of {} was found. Make sure your selected DEM engine is properly installed first.'.format(engine))
-			print('PyGran looked for ' + 'lib' + engine + '.so' + '. If the file exists, make sure it can be executed by the user.')
-			sys.exit()
+        if library:
+            print(
+                "No config file found. Creating one for {} in {}".format(
+                    library, os.path.abspath(liggghts_ini)
+                )
+            )
+            _setLIGGGHTS(library)
+        else:
+            print(
+                "No installation of {} was found. Make sure your selected DEM engine is properly installed first.".format(
+                    engine
+                )
+            )
+            print(
+                "PyGran looked for "
+                + "lib"
+                + engine
+                + ".so"
+                + ". If the file exists, make sure it can be executed by the user."
+            )
+            sys.exit()
 
-	return library, src, version
+    return library, src, version

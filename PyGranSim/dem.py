@@ -1,4 +1,4 @@
-'''
+"""
 Python interface for running DEM engines
 
 Created on April 25, 2016
@@ -27,12 +27,12 @@ of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. You should have
 received a copy of the GNU General Public License along with PyGran.
 If not, see http://www.gnu.org/licenses . See also top-level README
 and LICENSE files.
-'''
+"""
 
 try:
-  from mpi4py import MPI
+    from mpi4py import MPI
 except Exception:
-  MPI = None
+    MPI = None
 
 from importlib import import_module
 from datetime import datetime
@@ -43,18 +43,19 @@ import shutil
 import logging
 
 try:
-  from ._version import __version__
+    from ._version import __version__
 except Exception:
-  __version__ = None
+    __version__ = None
 
-__all__ = ['DEM']
+__all__ = ["DEM"]
+
 
 class DEM:
-  """A generic class that handles communication for a DEM object in a way that
+    """A generic class that handles communication for a DEM object in a way that
   is independent of the engine used"""
 
-  def __init__(self, **pargs):
-    """ Upon instantiation, this object initializes an MPI communicator and 
+    def __init__(self, **pargs):
+        """ Upon instantiation, this object initializes an MPI communicator and 
     partitions proccesors based on user input
 
     :param model: contact mechanical model (default SpringDashpot)
@@ -63,214 +64,253 @@ class DEM:
     .. todo:: Provide a description of each arg in pargs
      """
 
-    # Instantiate contact model and store it in pargs
-    if 'model' not in pargs:
-      pargs['model'] = models.SpringDashpot
+        # Instantiate contact model and store it in pargs
+        if "model" not in pargs:
+            pargs["model"] = models.SpringDashpot
 
-    # Overwrite pargs from the contact model's params
-    pargs = pargs['model'](**pargs).params
+        # Overwrite pargs from the contact model's params
+        pargs = pargs["model"](**pargs).params
 
-    if MPI:
-      self.comm = MPI.COMM_WORLD
-      self.rank = self.comm.Get_rank()
-      self.tProcs = self.comm.Get_size()
-    else:
-      self.comm = None
-      self.rank = 0
-      self.tProcs = 0
+        if MPI:
+            self.comm = MPI.COMM_WORLD
+            self.rank = self.comm.Get_rank()
+            self.tProcs = self.comm.Get_size()
+        else:
+            self.comm = None
+            self.rank = 0
+            self.tProcs = 0
 
-    self.nSim = pargs['nSim']
-    self.model = str(pargs['model']).split("'")[1].split('.')[-1]
-    self.pargs = pargs
-    self.library = None
-    self._dir,_ = os.path.abspath(__file__).split(os.path.basename(__file__))
-    
-    # Check if .config files eixsts else create it
-    # Only one process needs to do this
-    if not self.rank:
-      self.library, src, version = _setConfig(wdir=self._dir, engine=self.pargs['engine'].split('engine_')[1])
+        self.nSim = pargs["nSim"]
+        self.model = str(pargs["model"]).split("'")[1].split(".")[-1]
+        self.pargs = pargs
+        self.library = None
+        self._dir, _ = os.path.abspath(__file__).split(os.path.basename(__file__))
 
-      if version:
-        self.pargs['__version__'] = version
+        # Check if .config files eixsts else create it
+        # Only one process needs to do this
+        if not self.rank:
+            self.library, src, version = _setConfig(
+                wdir=self._dir, engine=self.pargs["engine"].split("engine_")[1]
+            )
 
-      if src:
-        self.pargs['liggghts_src'] = src
+            if version:
+                self.pargs["__version__"] = version
 
-      for slave in range(1,self.tProcs):
-          self.comm.send(self.library, dest=slave, tag=0)
-          self.comm.send('__version__' in self.pargs, dest=slave, tag=1)
+            if src:
+                self.pargs["liggghts_src"] = src
 
-          if '__version__' in self.pargs:
-            self.comm.send(self.pargs['__version__'], dest=slave, tag=2)
-    else:
-      self.library = self.comm.recv(source=0, tag=0)
-      if self.comm.recv(source=0, tag=1):
-        self.pargs['__version__'] = self.comm.recv(source=0, tag=2)
+            for slave in range(1, self.tProcs):
+                self.comm.send(self.library, dest=slave, tag=0)
+                self.comm.send("__version__" in self.pargs, dest=slave, tag=1)
 
-    if 'output' not in self.pargs:
-      # The idea is to create a unique output name that depends on the current time. Since the processes are not in sunc, it's safer
-      # to create the output name on the master processor and then send it to the slaves.
-      if not self.rank:
-        time = datetime.now()
-        self.pargs['output'] = 'out-{}-{}:{}:{}-{}.{}.{}'.format(self.model, time.hour, time.minute, time.second, time.day, time.month, time.year)
-        
-        for slave in range(1,self.tProcs):
-          self.comm.send(self.pargs['output'], dest=slave, tag=3)
+                if "__version__" in self.pargs:
+                    self.comm.send(self.pargs["__version__"], dest=slave, tag=2)
+        else:
+            self.library = self.comm.recv(source=0, tag=0)
+            if self.comm.recv(source=0, tag=1):
+                self.pargs["__version__"] = self.comm.recv(source=0, tag=2)
 
-      else:
-        self.pargs['output'] = self.comm.recv(source=0, tag=3)
+        if "output" not in self.pargs:
+            # The idea is to create a unique output name that depends on the current time. Since the processes are not in sunc, it's safer
+            # to create the output name on the master processor and then send it to the slaves.
+            if not self.rank:
+                time = datetime.now()
+                self.pargs["output"] = "out-{}-{}:{}:{}-{}.{}.{}".format(
+                    self.model,
+                    time.hour,
+                    time.minute,
+                    time.second,
+                    time.day,
+                    time.month,
+                    time.year,
+                )
 
-    if self.nSim > self.tProcs:
-      print("Number of simulations ({}) cannot exceed number of available processors ({})".format(self.nSim, self.tProcs))
-      sys.exit(0)
+                for slave in range(1, self.tProcs):
+                    self.comm.send(self.pargs["output"], dest=slave, tag=3)
 
-    self.pProcs = self.tProcs // self.nSim
+            else:
+                self.pargs["output"] = self.comm.recv(source=0, tag=3)
 
-    for i in range(self.nSim):
-      if self.rank < self.pProcs * (i + 1):
-        self.color = i
-        break
-      else:
-        # In case of odd number of procs, place the one left on the last communicator 
-        self.color = self.nSim
+        if self.nSim > self.tProcs:
+            print(
+                "Number of simulations ({}) cannot exceed number of available processors ({})".format(
+                    self.nSim, self.tProcs
+                )
+            )
+            sys.exit(0)
 
-    self.split = self.comm.Split(color=self.color, key=self.rank)
+        self.pProcs = self.tProcs // self.nSim
 
-    # update rank locally for each comm
-    self.rank = self.split.Get_rank()
+        for i in range(self.nSim):
+            if self.rank < self.pProcs * (i + 1):
+                self.color = i
+                break
+            else:
+                # In case of odd number of procs, place the one left on the last communicator
+                self.color = self.nSim
 
-    module = import_module(__name__.split('.dem')[0] + '.' + self.pargs['engine'])
+        self.split = self.comm.Split(color=self.color, key=self.rank)
 
-    output = self.pargs['output'] if self.nSim == 1 else (self.pargs['output'] + '-multi-mode-' + str(self.color))
+        # update rank locally for each comm
+        self.rank = self.split.Get_rank()
 
-    if not self.split.Get_rank():
-      if os.path.exists(output):
-        print('WARNING: output dir {} already exists. Proceeding ...'.format(output))
-      else:
-        os.mkdir(output)
+        module = import_module(__name__.split(".dem")[0] + "." + self.pargs["engine"])
 
-    # Make sure output in self.pargs is updated before instantiating dem class
-    self.pargs['output'] = output
+        output = (
+            self.pargs["output"]
+            if self.nSim == 1
+            else (self.pargs["output"] + "-multi-mode-" + str(self.color))
+        )
 
-    self.split.barrier() # Synchronize all procs
-        
-    os.chdir(self.pargs['output'])
+        if not self.split.Get_rank():
+            if os.path.exists(output):
+                print(
+                    "WARNING: output dir {} already exists. Proceeding ...".format(
+                        output
+                    )
+                )
+            else:
+                os.mkdir(output)
 
-    logging.basicConfig(filename='pygran.log', format='%(asctime)s:%(levelname)s: %(message)s', level=logging.DEBUG)
+        # Make sure output in self.pargs is updated before instantiating dem class
+        self.pargs["output"] = output
 
-    self.dem = module.DEMPy(self.split, self.library, **self.pargs)
+        self.split.barrier()  # Synchronize all procs
 
-    if not self.rank:
+        os.chdir(self.pargs["output"])
 
-      logging.info('Initializing simulation with PyGranSim version {}'.format(__version__))
-      logging.info("Initializing MPI for a total of {} cores".format(self.tProcs))
+        logging.basicConfig(
+            filename="pygran.log",
+            format="%(asctime)s:%(levelname)s: %(message)s",
+            level=logging.DEBUG,
+        )
 
-      if self.nSim > 1:
-        logging.info('Running {} simulations: multi-mode on'.format(self.nSim))
+        self.dem = module.DEMPy(self.split, self.library, **self.pargs)
 
-      if self.pProcs > 0:
-        logging.info('Using {} cores per simulation'.format(self.pProcs))
+        if not self.rank:
 
-      from sys import argv
-      scriptFile = argv[0]
+            logging.info(
+                "Initializing simulation with PyGranSim version {}".format(__version__)
+            )
+            logging.info("Initializing MPI for a total of {} cores".format(self.tProcs))
 
-      if not scriptFile.endswith('__main__.py'): # user is importing their script as a module, dont back up:
-        if scriptFile.endswith('.py'):
-          logging.debug('Attempting to backup {} file'.format(scriptFile))
-          try:
-            shutil.copyfile(os.path.join(os.getcwd(), '..', scriptFile), '{}'.format(scriptFile.split('.')[0] + '-bk.py'))
-          except Exception:
-            logging.debug('Backup failed')
+            if self.nSim > 1:
+                logging.info("Running {} simulations: multi-mode on".format(self.nSim))
 
-      else:
-        logging.info('Input script run as a module. Not backing up file')
+            if self.pProcs > 0:
+                logging.info("Using {} cores per simulation".format(self.pProcs))
 
+            from sys import argv
 
-    # All I/O done ~ phew! Now initialize DEM
-    # Import and setup all meshes as rigid walls
-    self.initialize()
+            scriptFile = argv[0]
 
-    # Setup material properties
-    if 'materials' in self.pargs:
-      for item in self.pargs['materials'].keys():
-        # Overloaded function 'createProperty' will partition material propreties based on MPI's coloring split scheme
-        # Do we even need this?
-        if isinstance(self.pargs['materials'][item], tuple): # Make sure we're not reading user-defined scalars (e.g. density)
-          self.createProperty(item, *self.pargs['materials'][item])
+            if not scriptFile.endswith(
+                "__main__.py"
+            ):  # user is importing their script as a module, dont back up:
+                if scriptFile.endswith(".py"):
+                    logging.debug("Attempting to backup {} file".format(scriptFile))
+                    try:
+                        shutil.copyfile(
+                            os.path.join(os.getcwd(), "..", scriptFile),
+                            "{}".format(scriptFile.split(".")[0] + "-bk.py"),
+                        )
+                    except Exception:
+                        logging.debug("Backup failed")
 
-    self.printSetup()
+            else:
+                logging.info("Input script run as a module. Not backing up file")
 
-    # Create links to the particle/mesh files (easily accessible to the user)
-    if 'pfile' in self.pargs['traj']:
-      if self.pargs['traj']['pfile']:
-        self.pfile = os.path.join(self.pargs['output'], 'traj', self.pargs['traj']['pfile'])
-        self.pargs['traj']['pfile'] = self.pfile 
-      else:
-        self.pfile = None
+        # All I/O done ~ phew! Now initialize DEM
+        # Import and setup all meshes as rigid walls
+        self.initialize()
 
-    if 'mfile' in self.pargs['traj']:
-      if self.pargs['traj']['mfile']:
-        self.mfile = os.path.join(self.pargs['output'], 'traj', self.pargs['traj']['mfile'])
-        self.pargs['traj']['mfile'] = self.mfile
-      else:
-        self.mfile = None
+        # Setup material properties
+        if "materials" in self.pargs:
+            for item in self.pargs["materials"].keys():
+                # Overloaded function 'createProperty' will partition material propreties based on MPI's coloring split scheme
+                # Do we even need this?
+                if isinstance(
+                    self.pargs["materials"][item], tuple
+                ):  # Make sure we're not reading user-defined scalars (e.g. density)
+                    self.createProperty(item, *self.pargs["materials"][item])
 
-  def scatter_atoms(self,name, type, count, data):
-    for i in range(self.nSim):
-      if self.rank < self.pProcs * (i + 1):
-        return self.dem.scatter_atoms(name,type,count,data)
+        self.printSetup()
 
-  def createParticles(self, type, style, *args):
-    for i in range(self.nSim):
-      if self.rank < self.pProcs * (i + 1):
-        self.dem.createParticles(type, style, *args)
-        break
+        # Create links to the particle/mesh files (easily accessible to the user)
+        if "pfile" in self.pargs["traj"]:
+            if self.pargs["traj"]["pfile"]:
+                self.pfile = os.path.join(
+                    self.pargs["output"], "traj", self.pargs["traj"]["pfile"]
+                )
+                self.pargs["traj"]["pfile"] = self.pfile
+            else:
+                self.pfile = None
 
-  def createGroup(self, *group):
-    for i in range(self.nSim):
-      if self.rank < self.pProcs * (i + 1):
-        self.dem.createGroup(*group)
-        break
+        if "mfile" in self.pargs["traj"]:
+            if self.pargs["traj"]["mfile"]:
+                self.mfile = os.path.join(
+                    self.pargs["output"], "traj", self.pargs["traj"]["mfile"]
+                )
+                self.pargs["traj"]["mfile"] = self.mfile
+            else:
+                self.mfile = None
 
-  def set(self, *args):
-    for i in range(self.nSim):
-      if self.rank < self.pProcs * (i + 1):
-        self.dem.set(*args)
-        break
+    def scatter_atoms(self, name, type, count, data):
+        for i in range(self.nSim):
+            if self.rank < self.pProcs * (i + 1):
+                return self.dem.scatter_atoms(name, type, count, data)
 
-  def gather_atoms(self,name,type,count):
-    for i in range(self.nSim):
-      if self.rank < self.pProcs * (i + 1):
-        return self.dem.gather_atoms(name,type,count)
+    def createParticles(self, type, style, *args):
+        for i in range(self.nSim):
+            if self.rank < self.pProcs * (i + 1):
+                self.dem.createParticles(type, style, *args)
+                break
 
-  def get_natoms(self):
-    for i in range(self.nSim):
-      if self.rank < self.pProcs * (i + 1):
-        return self.dem.get_natoms()
+    def createGroup(self, *group):
+        for i in range(self.nSim):
+            if self.rank < self.pProcs * (i + 1):
+                self.dem.createGroup(*group)
+                break
 
-  def extract_global(self,name,type):
-    for i in range(self.nSim):
-      if self.rank < self.pProcs * (i + 1):
-        return self.dem.extract_global(name, type)
-        
-  def extract_compute(self,id,style,type):
-    for i in range(self.nSim):
-      if self.rank < self.pProcs * (i + 1):
-        return self.dem.extract_compute(id,style,type)
+    def set(self, *args):
+        for i in range(self.nSim):
+            if self.rank < self.pProcs * (i + 1):
+                self.dem.set(*args)
+                break
 
-  def extract_fix(self,id,style,type,i=0,j=0):
-    for i in range(self.nSim):
-      if self.rank < self.pProcs * (i + 1):
-        return self.dem.extract_fix(id,style,type,i,j)
+    def gather_atoms(self, name, type, count):
+        for i in range(self.nSim):
+            if self.rank < self.pProcs * (i + 1):
+                return self.dem.gather_atoms(name, type, count)
 
-  def initialize(self):
-    for i in range(self.nSim):
-      if self.rank < self.pProcs * (i + 1):
-        self.dem.initialize()
-        break
-  
-  def velocity(self, *args):
-    """ Assigns velocity to selected particles.
+    def get_natoms(self):
+        for i in range(self.nSim):
+            if self.rank < self.pProcs * (i + 1):
+                return self.dem.get_natoms()
+
+    def extract_global(self, name, type):
+        for i in range(self.nSim):
+            if self.rank < self.pProcs * (i + 1):
+                return self.dem.extract_global(name, type)
+
+    def extract_compute(self, id, style, type):
+        for i in range(self.nSim):
+            if self.rank < self.pProcs * (i + 1):
+                return self.dem.extract_compute(id, style, type)
+
+    def extract_fix(self, id, style, type, i=0, j=0):
+        for i in range(self.nSim):
+            if self.rank < self.pProcs * (i + 1):
+                return self.dem.extract_fix(id, style, type, i, j)
+
+    def initialize(self):
+        for i in range(self.nSim):
+            if self.rank < self.pProcs * (i + 1):
+                self.dem.initialize()
+                break
+
+    def velocity(self, *args):
+        """ Assigns velocity to selected particles.
 
     :param args: group-ID style args keyword value
     :type args: tuple
@@ -279,13 +319,13 @@ class DEM:
            for info on keywords and their associated values.
     """
 
-    for i in range(self.nSim):
-      if self.rank < self.pProcs * (i + 1):
-        self.dem.velocity(*args)
-        break
+        for i in range(self.nSim):
+            if self.rank < self.pProcs * (i + 1):
+                self.dem.velocity(*args)
+                break
 
-  def addViscous(self, **args):
-    """ Adds a viscous damping force :math:`F` proportional
+    def addViscous(self, **args):
+        """ Adds a viscous damping force :math:`F` proportional
     to each particle's velocity :math:`v`:
     
     :math:`F = - \\gamma v`
@@ -297,43 +337,43 @@ class DEM:
     :param scale: (species, ratio) tuple to scale gamma with
     :type scale: tuple
     """
-    for i in range(self.nSim):
-        if self.rank < self.pProcs * (i + 1):
-          return self.dem.addViscous(**args)
+        for i in range(self.nSim):
+            if self.rank < self.pProcs * (i + 1):
+                return self.dem.addViscous(**args)
 
-  def insert(self, species, value, **args):
-    for i in range(self.nSim):
-      if self.rank < self.pProcs * (i + 1):
-        return self.dem.insert(species, value, **args)
+    def insert(self, species, value, **args):
+        for i in range(self.nSim):
+            if self.rank < self.pProcs * (i + 1):
+                return self.dem.insert(species, value, **args)
 
-  def run(self, nsteps, dt=None, itype=None):
-    for i in range(self.nSim):
-      if self.rank < self.pProcs * (i + 1):
-        return self.dem.run(nsteps, dt, itype)
-        
-  def setupParticles(self):
-    """ Internal function used to create particles in LIGGGHTS """
+    def run(self, nsteps, dt=None, itype=None):
+        for i in range(self.nSim):
+            if self.rank < self.pProcs * (i + 1):
+                return self.dem.run(nsteps, dt, itype)
 
-    for i in range(self.nSim):
-      if self.rank < self.pProcs * (i + 1):
-        self.dem.setupParticles()
-        break
+    def setupParticles(self):
+        """ Internal function used to create particles in LIGGGHTS """
 
-  def createProperty(self, name, *args):
-    """
+        for i in range(self.nSim):
+            if self.rank < self.pProcs * (i + 1):
+                self.dem.setupParticles()
+                break
+
+    def createProperty(self, name, *args):
+        """
     Internal function used to create material and interaction properties
     """
 
-    for i in range(self.nSim):
-      if self.rank < self.pProcs * (i + 1):
-        if type(args[0]) is tuple:
-          self.dem.createProperty(name, *args[i])
-        else:
-          self.dem.createProperty(name, *args)
-        break
+        for i in range(self.nSim):
+            if self.rank < self.pProcs * (i + 1):
+                if type(args[0]) is tuple:
+                    self.dem.createProperty(name, *args[i])
+                else:
+                    self.dem.createProperty(name, *args)
+                break
 
-  def importMeshes(self, name=None):
-    """
+    def importMeshes(self, name=None):
+        """
     An internal function that is called during DEM initialization for importing meshes.
     Unless `name` is supplied, this function by default imports all meshes and sets 
     them up as walls.
@@ -343,13 +383,13 @@ class DEM:
 
     :note: Can import only one mesh specified by the `name` keyword.
     """
-    for i in range(self.nSim):
-      if self.rank < self.pProcs * (i + 1):
-        self.dem.importMeshes(name)
-        break
+        for i in range(self.nSim):
+            if self.rank < self.pProcs * (i + 1):
+                self.dem.importMeshes(name)
+                break
 
-  def importMesh(self, name, file, mtype, **args):
-    """
+    def importMesh(self, name, file, mtype, **args):
+        """
     Imports a mesh file (STL or VTK)
 
     :param name: define mesh name
@@ -364,13 +404,13 @@ class DEM:
     :note: see `link <https://www.cfdem.com/media/DEM/docu/fix_mesh_surface.html>`_ 
            for further info on `mtype` and `args`.
     """
-    for i in range(self.nSim):
-      if self.rank < self.pProcs * (i + 1):
-        self.dem.importMesh(name, file, mtype, **args)
-        break
+        for i in range(self.nSim):
+            if self.rank < self.pProcs * (i + 1):
+                self.dem.importMesh(name, file, mtype, **args)
+                break
 
-  def setupWall(self, wtype, species = None, plane = None, peq = None):
-    """
+    def setupWall(self, wtype, species=None, plane=None, peq=None):
+        """
     Creates a primitive (virtual) or surface (mesh) wall
 
     :param wtype: type of the wall (primitive or mesh)
@@ -388,22 +428,22 @@ class DEM:
       primitiveWall = setupWall(species=1, wtype='primitive', plane = 'zplane', peq = 0.0)
 
     """
-    for i in range(self.nSim):
-      if self.rank < self.pProcs * (i + 1):
-        return self.dem.setupWall(wtype, species, plane, peq)
+        for i in range(self.nSim):
+            if self.rank < self.pProcs * (i + 1):
+                return self.dem.setupWall(wtype, species, plane, peq)
 
-  def printSetup(self):
-    """
+    def printSetup(self):
+        """
     Updates the print setup used to set which variables to write to file, 
     and their format.
     """
-    for i in range(self.nSim):
-      if self.rank < self.pProcs * (i + 1):
-        self.dem.printSetup()
-        break
+        for i in range(self.nSim):
+            if self.rank < self.pProcs * (i + 1):
+                self.dem.printSetup()
+                break
 
-  def writeSetup(self, only_mesh=False, name=None):
-    """
+    def writeSetup(self, only_mesh=False, name=None):
+        """
     This creates dump files for particles and meshes in the system. In LIGGGHTS, all meshes must be declared once, so if a mesh is removed during
     the simulation, this function has to be called again, usually with only_mesh=True to keep the particle dump intact.
 
@@ -415,21 +455,29 @@ class DEM:
     :rtype: str or list(str)
 
     """
-    for i in range(self.nSim):
-      if self.rank < self.pProcs * (i + 1):
-        dumpID = self.dem.writeSetup(only_mesh, name)
+        for i in range(self.nSim):
+            if self.rank < self.pProcs * (i + 1):
+                dumpID = self.dem.writeSetup(only_mesh, name)
 
-        # Create or update links to the particle/mesh files (easily accessible to the user)
-        if 'pfile' in self.lmp.pargs['traj']:
-          self.pfile = self.lmp.pargs['output'] + '/traj/' + self.lmp.pargs['traj']['pfile']
+                # Create or update links to the particle/mesh files (easily accessible to the user)
+                if "pfile" in self.lmp.pargs["traj"]:
+                    self.pfile = (
+                        self.lmp.pargs["output"]
+                        + "/traj/"
+                        + self.lmp.pargs["traj"]["pfile"]
+                    )
 
-        if 'mfile' in self.lmp.pargs['traj']:
-          self.mfile = self.lmp.pargs['output'] + '/traj/' + self.lmp.pargs['traj']['mfile']
+                if "mfile" in self.lmp.pargs["traj"]:
+                    self.mfile = (
+                        self.lmp.pargs["output"]
+                        + "/traj/"
+                        + self.lmp.pargs["traj"]["mfile"]
+                    )
 
-        return dumpID
+                return dumpID
 
-  def setupIntegrate(self, itype='nve/sphere', group='all'):
-    """
+    def setupIntegrate(self, itype="nve/sphere", group="all"):
+        """
     Controls how Newton's eqs are integrated in time. 
 
     :param itype: integrator type ('nve/sphere' or 'multisphere')
@@ -438,13 +486,13 @@ class DEM:
     :type group: str
 
     """
-    for i in range(self.nSim):
-      if self.rank < self.pProcs * (i + 1):
-        self.dem.setupIntegrate(name, itype, group)
-        break
+        for i in range(self.nSim):
+            if self.rank < self.pProcs * (i + 1):
+                self.dem.setupIntegrate(name, itype, group)
+                break
 
-  def integrate(self, steps, dt):
-    """
+    def integrate(self, steps, dt):
+        """
     Advance system in time.
 
     :param steps: number of steps
@@ -453,84 +501,84 @@ class DEM:
     :type dt: float
 
     """
-    for i in range(self.nSim):
-      if self.rank < self.pProcs * (i + 1):
-        self.dem.integrate(steps, dt, itype)
-        break
+        for i in range(self.nSim):
+            if self.rank < self.pProcs * (i + 1):
+                self.dem.integrate(steps, dt, itype)
+                break
 
-  def remove(self, name):
-    """
+    def remove(self, name):
+        """
     Delete variable/object by name.
 
     :param name: name of variable/object to unfix
     :type name: str
     """
-    for i in range(self.nSim):
-      if self.rank < self.pProcs * (i + 1):
-        self.dem.remove(name)
-        break
+        for i in range(self.nSim):
+            if self.rank < self.pProcs * (i + 1):
+                self.dem.remove(name)
+                break
 
-  def monitor(self, **args):
-    """
+    def monitor(self, **args):
+        """
     Not yet documented
     """
-    for i in range(self.nSim):
-      if self.rank < self.pProcs * (i + 1):
-        return self.dem.monitor(**args)
+        for i in range(self.nSim):
+            if self.rank < self.pProcs * (i + 1):
+                return self.dem.monitor(**args)
 
-  def plot(self, fname, xlabel, ylabel, output=None, xscale=None):
-    """
+    def plot(self, fname, xlabel, ylabel, output=None, xscale=None):
+        """
     Not yet documented
     """
-    for i in range(self.nSim):
-      if self.rank < self.pProcs * (i + 1):
-        self.dem.plot(fname, xlabel, ylabel, output, xscale)
-        break
+        for i in range(self.nSim):
+            if self.rank < self.pProcs * (i + 1):
+                self.dem.plot(fname, xlabel, ylabel, output, xscale)
+                break
 
-  def moveMesh(self, name, **args):
-    """
+    def moveMesh(self, name, **args):
+        """
     Not yet documented
     """
-    for i in range(self.nSim):
-      if self.rank < self.pProcs * (i + 1):
-        return self.dem.moveMesh(name, **args)
+        for i in range(self.nSim):
+            if self.rank < self.pProcs * (i + 1):
+                return self.dem.moveMesh(name, **args)
 
-  def saveas(self, name, fname):
-    """
+    def saveas(self, name, fname):
+        """
     Not yet documented
     """
-    for i in range(self.nSim):
-      if self.rank < self.pProcs * (i + 1):
-        self.dem.saveas(name, fname)
-        break
+        for i in range(self.nSim):
+            if self.rank < self.pProcs * (i + 1):
+                self.dem.saveas(name, fname)
+                break
 
-  def command(self, cmd):
-    """
+    def command(self, cmd):
+        """
     Pass a command to DEM engine.
 
     :param cmd: command specific to the DEM engine
     :type cmd: str
     """
-    for i in range(self.nSim):
-      if self.rank < self.pProcs * (i + 1):
-        self.dem.command(cmd)
-        break
+        for i in range(self.nSim):
+            if self.rank < self.pProcs * (i + 1):
+                self.dem.command(cmd)
+                break
 
-  def close(self):
-    """
+    def close(self):
+        """
     Internal function that frees allocated memory and changes directory back to current working directory. 
     """
-    # Dont call this since the user might be running multiple simulations in one script
-    #MPI.Finalize()
-    for i in range(self.nSim):
-      if self.rank < self.pProcs * (i + 1):
-        self.dem.close()
-        break
+        # Dont call this since the user might be running multiple simulations in one script
+        # MPI.Finalize()
+        for i in range(self.nSim):
+            if self.rank < self.pProcs * (i + 1):
+                self.dem.close()
+                break
 
-    os.chdir('..')    
+        os.chdir("..")
 
-  def __enter__(self):
-    return self
+    def __enter__(self):
+        return self
 
-  def __exit__(self, exc_type, exc_value, traceback):
-    os.chdir('..')
+    def __exit__(self, exc_type, exc_value, traceback):
+        os.chdir("..")

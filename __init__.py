@@ -1,4 +1,4 @@
-'''
+"""
   Created on Oct 04, 2019
   Author: Andrew Abi-Mansour
 
@@ -24,6 +24,6 @@
   received a copy of the GNU General Public License along with PyGran.
   If not, see http://www.gnu.org/licenses . See also top-level README
   and LICENSE files.
-'''
+"""
 
 from .PyGranSim import *
