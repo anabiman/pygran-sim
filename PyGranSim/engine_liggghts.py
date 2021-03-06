@@ -46,7 +46,6 @@ See the README file in the top-level LAMMPS directory.
 import sys, traceback
 import ctypes
 import numpy as np
-from mpi4py import MPI
 import os
 import glob
 import sys
@@ -55,12 +54,17 @@ from .tools import find, dictToTuple
 import itertools
 import logging
 
+try:
+    from mpi4py import MPI
+except Exception:
+    MPI = None
+
 
 class RandPrime(object):
     """
-  Random prime number generator with memory. The idea is to generate a unique prime number
-  for LIGGGHTS.
-  """
+    Random prime number generator with memory. The idea is to generate a unique prime number
+    for LIGGGHTS.
+    """
 
     hist = []
 
@@ -84,26 +88,20 @@ class RandPrime(object):
 
 class Liggghts:
     """
-  A class that provides API-like access to LIGGGHTS-PUBLIC
+    A class that provides API-like access to LIGGGHTS-PUBLIC
 
-  :param library: full path to the LIGGGHTS-PUBLIC module (.so file)
-  :type library: str
+    :param library: full path to the LIGGGHTS-PUBLIC module (.so file)
+    :type library: str
 
-  :param style: particle type ('spherical' by default)
-  :type style: str
+    :param style: particle type ('spherical' by default)
+    :type style: str
 
-  :param dim: simulation box dimension (default 3)
-  :type dim: int
+    :param dim: simulation box dimension (default 3)
+    :type dim: int
 
-  :param units: unit system (default 'si'). See `here <https://www.cfdem.com/media/DEM/docu/units.html>`_ for available options.
-  :type units: str
-  """
-
-    # detect if Python is using version of mpi4py that can pass a communicator
-    try:
-        from mpi4py import MPI
-    except Exception:
-        pass
+    :param units: unit system (default 'si'). See `here <https://www.cfdem.com/media/DEM/docu/units.html>`_ for available options.
+    :type units: str
+    """
 
     # create instance of LIGGGHTS
     def __init__(
@@ -117,6 +115,12 @@ class Liggghts:
         comm=None,
         ptr=None,
     ):
+
+        if not MPI:
+            raise ModuleNotFoundError(
+                "You must have mpi4py and an MPI library installed to use LIGGGHTS."
+            )
+
         if library:
             if not comm.Get_rank():
                 logging.info(
@@ -215,25 +219,25 @@ class Liggghts:
             self.lmp = None
 
     def file(self, file):
-        """ Function for loading LIGGGHTS input file scripts. 
+        """Function for loading LIGGGHTS input file scripts.
 
-    :param file: input filename
-    :type file: str
+        :param file: input filename
+        :type file: str
 
-    .. note:: For python 3, "file" is encoded as an 8 character utf 
+        .. note:: For python 3, "file" is encoded as an 8 character utf
 
-    """
+        """
         self.lib.lammps_file(self.lmp, file.encode("utf-8"))
 
     def command(self, cmd):
-        """ Function for executing a LIGGGHTS command
+        """Function for executing a LIGGGHTS command
 
-    :param cmd: input LIGGGHTS command
-    :type cmd: str
+        :param cmd: input LIGGGHTS command
+        :type cmd: str
 
-    .. note:: For python 3, "cmd" is encoded as an 8 character utf 
+        .. note:: For python 3, "cmd" is encoded as an 8 character utf
 
-    """
+        """
         self.lib.lammps_command(self.lmp, cmd.encode("utf-8"))
 
     def extract_global(self, name, type):
@@ -367,38 +371,38 @@ class Liggghts:
 class DEMPy(object):
     """A class that implements a python interface for DEM computations
 
-  :param units: unit system (default 'si'). See `ref <https://www.cfdem.com/media/DEM/docu/units.html>`_.
-  :type units: str
+    :param units: unit system (default 'si'). See `ref <https://www.cfdem.com/media/DEM/docu/units.html>`_.
+    :type units: str
 
-  :param style: particle type ('spherical' by default)
-  :type style: str
+    :param style: particle type ('spherical' by default)
+    :type style: str
 
-  :param split: MPI communicator
-  :type comm: MPI Intracomm
+    :param split: MPI communicator
+    :type comm: MPI Intracomm
 
-  :param species: defines the number and properties of all species
-  :type species: tuple
+    :param species: defines the number and properties of all species
+    :type species: tuple
 
-  :param output: output dir name
-  :type output: str
+    :param output: output dir name
+    :type output: str
 
-  :param print: specify which variables to print to stdout: (freq, 'varName1', 'varName2', ...). Default is (10**4, 'time', 'dt', 'atoms').
-  :type print: tuple
+    :param print: specify which variables to print to stdout: (freq, 'varName1', 'varName2', ...). Default is (10**4, 'time', 'dt', 'atoms').
+    :type print: tuple
 
-  :param library: full path to the LIGGGHTS-PUBLIC module (.so file)
-  :type library: str
+    :param library: full path to the LIGGGHTS-PUBLIC module (.so file)
+    :type library: str
 
-  :param dim: simulation box dimension (2 or 3)
-  :type dim: int
+    :param dim: simulation box dimension (2 or 3)
+    :type dim: int
 
-  :param restart: specify restart options via (freq=int, dirname=str, filename=str, restart=bool, frame=int)
-  :type restart: tuple
+    :param restart: specify restart options via (freq=int, dirname=str, filename=str, restart=bool, frame=int)
+    :type restart: tuple
 
-  :param boundary: setup boundary conditions (see `ref <https://www.cfdem.com/media/DEM/docu/boundary.html>`_), e.g. ('p', 'p', 'p') -> periodic boundaries in 3D.
-  :type boundary: tuple
+    :param boundary: setup boundary conditions (see `ref <https://www.cfdem.com/media/DEM/docu/boundary.html>`_), e.g. ('p', 'p', 'p') -> periodic boundaries in 3D.
+    :type boundary: tuple
 
-  .. todo:: This class should be generic (not specific to liggghts), must handle all I/O, garbage collection, etc. and then moved to DEM.py
-  """
+    .. todo:: This class should be generic (not specific to liggghts), must handle all I/O, garbage collection, etc. and then moved to DEM.py
+    """
 
     def __init__(self, split, library, style, **pargs):
         """ Initialize some settings and specifications """
@@ -667,22 +671,22 @@ class DEMPy(object):
 
     def insert(self, species, value, **args):
         """
-    This function inserts particles, and assigns particle velocities if requested by the user. If species is 'all',
-    all components specified in SS are inserted. Otherwise, species must be the id of the component to be inserted.
-    For available region shapes, see `ref <https://www.cfdem.com/media/DEM/docu/region.html>`_. The default region is
-    the whole system.
+        This function inserts particles, and assigns particle velocities if requested by the user. If species is 'all',
+        all components specified in SS are inserted. Otherwise, species must be the id of the component to be inserted.
+        For available region shapes, see `ref <https://www.cfdem.com/media/DEM/docu/region.html>`_. The default region is
+        the whole system.
 
-    :param species: species id ('all', or 1, 2, ... )
-    :type param: int or str
+        :param species: species id ('all', or 1, 2, ... )
+        :type param: int or str
 
-    :param value: number of particles, or volume fraction, or mass fraction, or etc.
-    :type value: float
+        :param value: number of particles, or volume fraction, or mass fraction, or etc.
+        :type value: float
 
-    :param region: define region via ('shape', (xmin, xmax, ymin, ymax, zmin, zmax)) or ('shape', xmin, xmax, ymin, ymax, zmin, zmax)
-    :type region: tuple
+        :param region: define region via ('shape', (xmin, xmax, ymin, ymax, zmin, zmax)) or ('shape', xmin, xmax, ymin, ymax, zmin, zmax)
+        :type region: tuple
 
-    .. todo:: Support insertion of all or multiple species at the same time for multiple regions. 
-    """
+        .. todo:: Support insertion of all or multiple species at the same time for multiple regions.
+        """
         if not self.pddName:
             print(
                 "Probability distribution not set for particle insertion. Exiting ..."
@@ -716,11 +720,11 @@ class DEMPy(object):
         #  region = tuple(targs)
 
         def insert_loc(self, id, value, vel, vel_type, region, mech, **ss):
-            """ For multi-component system, this function can cause REAL *trouble*. For now, make sure components
-      are inserted consecutively or all at once.
+            """For multi-component system, this function can cause REAL *trouble*. For now, make sure components
+            are inserted consecutively or all at once.
 
-      .. todo:: Let the user override volume_limit.
-      """
+            .. todo:: Let the user override volume_limit.
+            """
 
             if not self.rank:
                 logging.info("Inserting particles for species {}".format(id + 1))
@@ -841,17 +845,17 @@ class DEMPy(object):
         return randName
 
     def run(self, nsteps, dt=None, itype=None):
-        """ Runs a simulation for number of steps specified by the user
+        """Runs a simulation for number of steps specified by the user
 
-     :param nsteps: number of steps the integrator should take
-     :type nsteps: int
+        :param nsteps: number of steps the integrator should take
+        :type nsteps: int
 
-     :param itype: specifies integrator type: 'sphere' (rotational motion on) or 'rigid_sphere' (rotational motion off)
-     :type itype: str
-     
-     :param dt: timestep
-     :type dt: float
-    """
+        :param itype: specifies integrator type: 'sphere' (rotational motion on) or 'rigid_sphere' (rotational motion off)
+        :type itype: str
+
+        :param dt: timestep
+        :type dt: float
+        """
 
         name = self.setupIntegrate(itype=itype)
 
@@ -873,11 +877,11 @@ class DEMPy(object):
         return name
 
     def moveMesh(self, name, **args):
-        """ Control how a mesh (specified by name) moves in time
+        """Control how a mesh (specified by name) moves in time
 
-    @name: string specifying mesh ID/name
-    @args: keywords specific to LIGGGHTS's move/mesh command: https://www.cfdem.com/media/DEM/docu/fix_move_mesh.html
-    """
+        @name: string specifying mesh ID/name
+        @args: keywords specific to LIGGGHTS's move/mesh command: https://www.cfdem.com/media/DEM/docu/fix_move_mesh.html
+        """
 
         randName = "moveMesh" + str(np.random.randint(10 ** 5, 10 ** 8))
 
@@ -891,11 +895,11 @@ class DEMPy(object):
         return randName
 
     def importMeshes(self, name=None):
-        """ Imports all meshes and sets them up as walls. Can import only one mesh specified by the 'name' keyword.
-    @file: mesh filename
-    @mtype: mesh type
-    @args: additional args
-    """
+        """Imports all meshes and sets them up as walls. Can import only one mesh specified by the 'name' keyword.
+        @file: mesh filename
+        @mtype: mesh type
+        @args: additional args
+        """
         wallIsMesh = False
 
         if "mesh" in self.pargs:
@@ -939,8 +943,8 @@ class DEMPy(object):
 
     def importMesh(self, name, file, mtype, material, **args):
         """
-    Imports a specific surface mesh requested by the user
-    """
+        Imports a specific surface mesh requested by the user
+        """
         args = dictToTuple(**args)
 
         if not self.rank:
@@ -953,15 +957,15 @@ class DEMPy(object):
 
     def setupWall(self, wtype, species=None, plane=None, peq=None):
         """
-    Creates a wall
-    @ wtype: type of the wall (primitive or mesh)
-    @ plane: x, y, or z plane for primitive walls
-    @ peq: plane equation for primitive walls
+        Creates a wall
+        @ wtype: type of the wall (primitive or mesh)
+        @ plane: x, y, or z plane for primitive walls
+        @ peq: plane equation for primitive walls
 
-    This function can be called only ONCE for setting up all mesh walls (restriction from LIGGGHTS)
+        This function can be called only ONCE for setting up all mesh walls (restriction from LIGGGHTS)
 
-    .. todo:: Support additional keywords (shear, etc.) for primitive walls
-    """
+        .. todo:: Support additional keywords (shear, etc.) for primitive walls
+        """
 
         gran = "gran"  # VERY HACKISH
         model = []
@@ -1024,9 +1028,9 @@ class DEMPy(object):
 
     def remove(self, name):
         """
-    Deletes a specified fix. If the fix is for a mesh, we must unfix it and re-import all meshes again and setup them
-    up as walls. Very tedious!
-    """
+        Deletes a specified fix. If the fix is for a mesh, we must unfix it and re-import all meshes again and setup them
+        up as walls. Very tedious!
+        """
         # Remove any DUMP-IDS 1st in case the user wants to move a mesh
         if "mesh" in self.pargs:
             if name in self.pargs["mesh"]:
@@ -1065,8 +1069,7 @@ class DEMPy(object):
         self.lmp.command("unfix {}".format(name))
 
     def createGroup(self, *group):
-        """ Create groups of atoms. If group is empty, groups{i} are created for every i species.
-    """
+        """Create groups of atoms. If group is empty, groups{i} are created for every i species."""
         if not self.rank:
             logging.info("Creating atom group {}".format(group))
 
@@ -1078,9 +1081,9 @@ class DEMPy(object):
 
     def createParticles(self, type, style, *args):
         """
-    Creates particles of type 'type' (1,2, ...) using style 'style' (box or region or single or random)
-    @[args]: 'basis' or 'remap' or 'units' or 'all_in' 
-    """
+        Creates particles of type 'type' (1,2, ...) using style 'style' (box or region or single or random)
+        @[args]: 'basis' or 'remap' or 'units' or 'all_in'
+        """
         if not self.rank:
             logging.info(
                 "Creating particles {} with args".format(type)
@@ -1097,8 +1100,8 @@ class DEMPy(object):
 
     def setupNeighbor(self, **params):
         """
-    Sets up NNS list parameters
-    """
+        Sets up NNS list parameters
+        """
         if not self.rank:
             logging.info("Setting up nearest neighbor searching parameters")
 
@@ -1127,8 +1130,8 @@ class DEMPy(object):
 
     def createProperty(self, name, *args):
         """
-    Material and interaction properties required
-    """
+        Material and interaction properties required
+        """
         if not self.rank:
             logging.info(
                 "Creating property {} with args".format(name)
@@ -1142,8 +1145,8 @@ class DEMPy(object):
 
     def setupPhysics(self):
         """
-    Specify the interation forces
-    """
+        Specify the interation forces
+        """
         if not self.rank:
             logging.info("Setting up interaction parameters")
 
@@ -1154,19 +1157,19 @@ class DEMPy(object):
 
     def velocity(self, *args):
         """
-    Assigns velocity to selected particles.
-    :param args: group-ID style args keyword value
-    :type args: tuple
+        Assigns velocity to selected particles.
+        :param args: group-ID style args keyword value
+        :type args: tuple
 
-    :note: See `link <https://www.cfdem.com/media/DEM/docu/velocity.html>`_ 
-           for info on keywords and their associated values.
-    """
+        :note: See `link <https://www.cfdem.com/media/DEM/docu/velocity.html>`_
+               for info on keywords and their associated values.
+        """
         self.lmp.command("velocity" + (" {}" * len(args)).format(*args))
 
     def setupGravity(self):
         """
-    Specify in which direction the gravitational force acts
-    """
+        Specify in which direction the gravitational force acts
+        """
         if "gravity" in self.pargs:
             self.lmp.command(
                 "fix myGravity all gravity {} vector {} {} {}".format(
@@ -1175,8 +1178,7 @@ class DEMPy(object):
             )
 
     def initialize(self, **params):
-        """
-    """
+        """"""
 
         if self.pargs["restart"]:
             self.lmp.command("restart {} {}/{}".format(*self.pargs["restart"][:-1]))
@@ -1223,9 +1225,9 @@ class DEMPy(object):
 
     def setupIntegrate(self, itype=None, group=None):
         """
-    Specify how Newton's eqs are integrated in time. MUST BE EXECUTED ONLY ONCE.
-    .. todo:: Extend this to super-quadric particles
-    """
+        Specify how Newton's eqs are integrated in time. MUST BE EXECUTED ONLY ONCE.
+        .. todo:: Extend this to super-quadric particles
+        """
         if not self.rank:
             logging.info("Setting up integration scheme parameters")
 
@@ -1287,8 +1289,8 @@ class DEMPy(object):
 
     def integrate(self, steps, dt=None):
         """
-    Run simulation in time
-    """
+        Run simulation in time
+        """
         if not self.rank:
             logging.info("Integrating the system for {} steps".format(steps))
 
@@ -1302,8 +1304,8 @@ class DEMPy(object):
 
     def printSetup(self):
         """
-    Specify which variables to write to file, and their format
-    """
+        Specify which variables to write to file, and their format
+        """
         if not self.rank:
             logging.info("Setting up printing options")
 
@@ -1315,9 +1317,9 @@ class DEMPy(object):
 
     def writeSetup(self, only_mesh=False, name=None):
         """
-    This creates dumps for particles and meshes in the system. In LIGGGHTS, all meshes must be declared once, so if a mesh is removed during
-    the simulation, this function has to be called again, usually with only_mesh=True to keep the particle dump intact.
-    """
+        This creates dumps for particles and meshes in the system. In LIGGGHTS, all meshes must be declared once, so if a mesh is removed during
+        the simulation, this function has to be called again, usually with only_mesh=True to keep the particle dump intact.
+        """
         if not self.rank:
             logging.info("Setting up trajectory i/o")
 
@@ -1411,8 +1413,8 @@ class DEMPy(object):
 
     def extractCoords(self):
         """
-    Extracts atomic positions from a certian frame and adds it to coords
-    """
+        Extracts atomic positions from a certian frame and adds it to coords
+        """
         if not self.rank:
             logging.info("Extracting atomic poitions")
 
@@ -1439,16 +1441,16 @@ class DEMPy(object):
 
     def monitor(self, **args):
         """
-    Computes time-averaged quantities of a global vector.
-    @species:
-    @name:
-    @var:
-    @[nevery: 1 
-    @[nrepeat: 1
-    @[nfreq]: 1
+        Computes time-averaged quantities of a global vector.
+        @species:
+        @name:
+        @var:
+        @[nevery: 1
+        @[nrepeat: 1
+        @[nfreq]: 1
 
-    returns the mean variable as a scalar
-    """
+        returns the mean variable as a scalar
+        """
         if "nevery" not in args:
             args["nevery"] = 1
 
@@ -1475,18 +1477,18 @@ class DEMPy(object):
         return getattr(self, "my{name}".format(**args))
 
     def addViscous(self, **args):
-        """ Adds a viscous damping force :math:`F` proportional
-    to each particle's velocity :math:`v`:
-    
-    :math:`F = - \\gamma v`
+        """Adds a viscous damping force :math:`F` proportional
+        to each particle's velocity :math:`v`:
 
-    :param species: species index (0, 1, ...)
-    :type species: int
-    :param gamma: viscosity coefficient (:math:`\\gamma`)
-    :type gamma: positive float
-    :param scale: (species, ratio) tuple to scale gamma with
-    :type scale: tuple
-    """
+        :math:`F = - \\gamma v`
+
+        :param species: species index (0, 1, ...)
+        :type species: int
+        :param gamma: viscosity coefficient (:math:`\\gamma`)
+        :type gamma: positive float
+        :param scale: (species, ratio) tuple to scale gamma with
+        :type scale: tuple
+        """
         if "scale" not in args:
             args["scale"] = (args["species"], 1)
 
@@ -1509,8 +1511,7 @@ class DEMPy(object):
         return name
 
     def plot(self, fname, xlabel, ylabel, output=None, xscale=None):
-        """
-    """
+        """"""
         if not self.rank:
             try:
                 # plt.rc('text', usetex=True)
@@ -1531,8 +1532,7 @@ class DEMPy(object):
                 raise Exception("Unexpected error:", sys.exc_info()[0])
 
     def saveas(self, name, fname):
-        """
-    """
+        """"""
         if not self.rank:
 
             try:
@@ -1542,13 +1542,12 @@ class DEMPy(object):
 
     def command(self, cmd):
         """
-    Passes a specific command to LIGGGHTS
-    """
+        Passes a specific command to LIGGGHTS
+        """
         self.lmp.command(cmd)
 
     def resume(self):
-        """
-    """
+        """"""
         rdir = "{}/*".format(self.pargs["restart"][1])
 
         if self.pargs["restart"][-1]:
@@ -1559,15 +1558,13 @@ class DEMPy(object):
         self.lmp.command("read_restart {}".format(rfile))
 
     def readData(self):
-        """
-    """
+        """"""
         args = self.pargs["read_data"]
 
         self.lmp.command("read_dump " + (" {}" * len(args)).format(*args))
 
     def __del__(self):
-        """ Destructor
-    """
+        """Destructor"""
         pass
 
     def close(self):

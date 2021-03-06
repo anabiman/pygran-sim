@@ -42,26 +42,30 @@ from scipy.integrate import ode
 from scipy.optimize import fsolve
 from .tools import pygranToLIGGGHTS
 import os
-from mpi4py import MPI
+
+try:
+    from mpi4py import MPI
+except Exception:
+    MPI = None
 
 
 def template_tablet(nspheres, radius, length):
-    """ This function creates a multi-sphere tablet (cylinder) of
-	radius "radius" and height "length" constituting "nspheres" spheres.
-	This is used for multisphere simulations.
+    """This function creates a multi-sphere tablet (cylinder) of
+    radius "radius" and height "length" constituting "nspheres" spheres.
+    This is used for multisphere simulations.
 
-	.. todo:: Move this function elsewhere.
+    .. todo:: Move this function elsewhere.
 
-	:param nspheres: number of spheres each tablet consists of
-	:type nspheres: int
-	:param radius: particle radius
-	:type radius: float
-	:param length: length of the tablet
-	:type length: float
+    :param nspheres: number of spheres each tablet consists of
+    :type nspheres: int
+    :param radius: particle radius
+    :type radius: float
+    :param length: length of the tablet
+    :type length: float
 
-	:return: DEM representation of the tablet
-	:rtype: tuple
-	"""
+    :return: DEM representation of the tablet
+    :rtype: tuple
+    """
 
     delta = (2 * radius * nspheres - length) / (nspheres - 1)
     ms = ("nspheres {}".format(nspheres), "ntry 1000000 spheres")
@@ -75,12 +79,12 @@ def template_tablet(nspheres, radius, length):
 
 
 def template_multisphere(func):
-    """ This function creates a generic multi-sphere particle
-	based on a user-supplied function.
+    """This function creates a generic multi-sphere particle
+    based on a user-supplied function.
 
-	:param func: returns a list of tuples: [(x1,y1,z1,radius1), ...]
-	:type func: function
-	"""
+    :param func: returns a list of tuples: [(x1,y1,z1,radius1), ...]
+    :type func: function
+    """
 
     parts = func()
     nspheres = len(parts)
@@ -95,7 +99,7 @@ def template_multisphere(func):
 
 
 class Model(object):
-    """ This class implements a contact model. It can be used to run a DEM simulation (e.g. with LIGGGHTS) or numerical experiments for simulating particle-wall collisions.
+    """This class implements a contact model. It can be used to run a DEM simulation (e.g. with LIGGGHTS) or numerical experiments for simulating particle-wall collisions.
 
     :param mesh: a dictionary that defines all meshes and their properties
     :type mesh: dict
@@ -108,27 +112,27 @@ class Model(object):
 
     :param nSim: number of concurrent simulations to run (default 1)
     :type nSim: int
-	
+
     :param units: unit system (default 'si'). See `here <https://www.cfdem.com/media/DEM/docu/units.html>`_ for available options.
     :type units: str
 
     :param comm: MPI communicator (default COMM_WORLD)
     :type comm: MPI Intracomm
-    
+
     :param rank: processor rank
     :type rank: int
-    
+
     :param debug: set debug mode on (default False)
     :type debug: bool
-    
-    :param engine: DEM engine (default 'engine_liggghts') 
+
+    :param engine: DEM engine (default 'engine_liggghts')
     :type engine: str
-    
+
     :param species: defines the number and properties of all species
     :type species: tuple
 
     .. todo:: Support particle-particle collisions
-	"""
+    """
 
     def __init__(self, **params):
 
@@ -136,8 +140,8 @@ class Model(object):
         self.params["nSS"] = 0
         self.JKR = False  # Assume JKR cohesion model is by default OFF
         self.limitForce = (
-            True
-        )  # for visco-elastic models, make sure the attractive force
+            True  # for visco-elastic models, make sure the attractive force
+        )
         # at the end of the contact is ZERO.
         self.deltaf = 0  # when to end contact
 
@@ -228,6 +232,10 @@ class Model(object):
                 # See if we're running PyGran in multi-mode, them reduce lists to floats/ints
                 if self.params["nSim"] > 1:
 
+                    if not MPI:
+                        raise ModuleNotFoundError(
+                            "You must have mpi4py and an MPI library installed to set nSim > 1."
+                        )
                     # Make sure total number of colors <= total number of cores
                     if self.params["nSim"] > MPI.COMM_WORLD.Get_size():
                         raise ValueError(
@@ -455,11 +463,11 @@ class Model(object):
             setattr(self, prop, self.materials[prop])
 
     def contactTime(self):
-        """ Computes the characteristic collision time assuming for a spring dashpot model 
+        """Computes the characteristic collision time assuming for a spring dashpot model
 
-		:return: the contact time
-		:rtype: float
-		"""
+        :return: the contact time
+        :rtype: float
+        """
 
         if not hasattr(self, "coefficientRestitution"):
             rest = 0.9
@@ -477,15 +485,15 @@ class Model(object):
         return np.sqrt(mass * (np.pi ** 2.0 + np.log(rest) ** 2) / kn)
 
     def displacement(self, dt=None):
-        """ Generator that computes (iteratively) the overlap distance (displacement) as a function of time 
+        """Generator that computes (iteratively) the overlap distance (displacement) as a function of time
 
-		:param dt: timestep used by the ODE integrator, by default it is 0.1% of contact duration
-		:type dt: float
-		:return: time, displacement, and force as numpy arrays
-		:rtype: tuple
+        :param dt: timestep used by the ODE integrator, by default it is 0.1% of contact duration
+        :type dt: float
+        :return: time, displacement, and force as numpy arrays
+        :rtype: tuple
 
-		.. todo:: Enable the user control the timestep resolution (number of timesteps).
-		"""
+        .. todo:: Enable the user control the timestep resolution (number of timesteps).
+        """
 
         if not hasattr(self, "characteristicVelocity"):
             self.characteristicVelocity = 0.1
@@ -551,26 +559,26 @@ class Model(object):
 
     @property
     def contactRadius(self):
-        """ Returns the contact radius.
+        """Returns the contact radius.
 
-		:return: contact radius
-		:rtype: numpy array
+        :return: contact radius
+        :rtype: numpy array
 
-		.. note:: This function is *not* useful since self._contRadius is not updated anywhere.
+        .. note:: This function is *not* useful since self._contRadius is not updated anywhere.
 
-		"""
+        """
         return np.array(self._contRadius)
 
     def _contactRadius(self, delta, radius):
-        """ Internal function that computes the contact radius for Hertzian and JKR models
+        """Internal function that computes the contact radius for Hertzian and JKR models
 
-		:param delta: normal displacement
-		:type delta: float
-		:param radius: effective radius
-		:type radius: float
-		:return: contact radius
-		:rtype: float
-		"""
+        :param delta: normal displacement
+        :type delta: float
+        :param radius: effective radius
+        :type radius: float
+        :return: contact radius
+        :rtype: float
+        """
 
         if self.JKR:
             if hasattr(self, "cohesionEnergyDensity"):
@@ -672,13 +680,13 @@ class Model(object):
 
 class SpringDashpot(Model):
     """
-	A class that implements the linear spring model for granular materials
+    A class that implements the linear spring model for granular materials
 
-	:param material: a python dictionary that specifies the material properties
-	:type material: dict
-	:param limitForce: turns on a limitation on the force, preventing it from becoming attractive at the end of a contact
-	:type limitForce: bool
-	"""
+    :param material: a python dictionary that specifies the material properties
+    :type material: dict
+    :param limitForce: turns on a limitation on the force, preventing it from becoming attractive at the end of a contact
+    :type limitForce: bool
+    """
 
     def __init__(self, **params):
 
@@ -701,14 +709,14 @@ class SpringDashpot(Model):
             self.limitForce = self.params["limitForce"]
 
     def springStiff(self, delta=None):
-        """ Computes the spring constant (:math:`k_n`) for the normal force :math:`F_n = k_n \delta_n`.
+        """Computes the spring constant (:math:`k_n`) for the normal force :math:`F_n = k_n \delta_n`.
 
-		:param delta: normal displacement (:math:`\delta_n`)
-		:type delta: float
-		:return: spring stiffness (:math:`k_n`)
-		:rtype: float
+        :param delta: normal displacement (:math:`\delta_n`)
+        :type delta: float
+        :return: spring stiffness (:math:`k_n`)
+        :rtype: float
 
-		"""
+        """
         poiss = self.poissonsRatio
         yMod = self.youngsModulus
         radius = self.radius
@@ -727,11 +735,11 @@ class SpringDashpot(Model):
         )
 
     def dissCoef(self, delta=None):
-        """ Computes the normal dissipative coefficient (:math:`c_n`) for the dissipative force :math:`F_d = - c_n \dot{\delta_n}`
+        """Computes the normal dissipative coefficient (:math:`c_n`) for the dissipative force :math:`F_d = - c_n \dot{\delta_n}`
 
-		:return: dissipative coefficient (:math:`c_n`) 
-		:rtype: float
-		"""
+        :return: dissipative coefficient (:math:`c_n`)
+        :rtype: float
+        """
         rest = self.coefficientRestitution
         poiss = self.poissonsRatio
         yMod = self.youngsModulus
@@ -745,33 +753,33 @@ class SpringDashpot(Model):
         return loge * np.sqrt(4.0 * mass * kn / (np.pi ** 2.0 + loge ** 2.0))
 
     def dissForce(self, delta, deltav):
-        """ Returns the dissipative (viscous) force: :math:`F_d = - c_n \dot{\delta_n}`
-		where :math:`c_n` is the dissipative coefficient.
+        """Returns the dissipative (viscous) force: :math:`F_d = - c_n \dot{\delta_n}`
+        where :math:`c_n` is the dissipative coefficient.
 
-		:param delta: normal displacement
-		:type delta: float
-		:param deltav: time derivative of the normal displacement
-		:type deltav: float
+        :param delta: normal displacement
+        :type delta: float
+        :param deltav: time derivative of the normal displacement
+        :type deltav: float
 
-		:return: dissipative force :math:`F_d`
-		:rtype: float
+        :return: dissipative force :math:`F_d`
+        :rtype: float
 
-		"""
+        """
 
         return self.dissCoef() * deltav
 
     def displacementAnalytical(self, dt=None):
-        """ Computes the displacement based on the analytical solution for
-		a spring-dashpot model.
+        """Computes the displacement based on the analytical solution for
+        a spring-dashpot model.
 
-		:param dt: timestep. By default, the timestep is 1% of the contact time.
-		:type dt: float
+        :param dt: timestep. By default, the timestep is 1% of the contact time.
+        :type dt: float
 
-		:return: time, displacement, and force arrays of size :math:`N`, :math:`N` by 2, and :math:`N`, respectively, where :math:`N` is the total number of steps taken by the integrator. The displacement array stores the overlap in its 1st column and the overlap velocity (time derivative) in its 2nd column. 
-		:rtype: tuple
+        :return: time, displacement, and force arrays of size :math:`N`, :math:`N` by 2, and :math:`N`, respectively, where :math:`N` is the total number of steps taken by the integrator. The displacement array stores the overlap in its 1st column and the overlap velocity (time derivative) in its 2nd column.
+        :rtype: tuple
 
-		.. todo:: Take cohesion (simplified JKR) into account
-		"""
+        .. todo:: Take cohesion (simplified JKR) into account
+        """
 
         mass = self.mass
 
@@ -805,13 +813,13 @@ class SpringDashpot(Model):
         return time, np.array([delta, deltav]).T, force
 
     def elasticForce(self, delta):
-        """ Returns the elastic force based on Hooke's law: :math:`F_n = k_n \delta_n` 
+        """Returns the elastic force based on Hooke's law: :math:`F_n = k_n \delta_n`
 
-		:param delta: normal displacement
-		:type delta: float
-		:return: elastic contact force
-		:rtype: float
-		"""
+        :param delta: normal displacement
+        :type delta: float
+        :return: elastic contact force
+        :rtype: float
+        """
 
         radius = self.radius
         kn = self.springStiff(radius)
@@ -819,27 +827,27 @@ class SpringDashpot(Model):
         return kn * delta
 
     def cohesiveForce(self, delta):
-        """ Returns the cohesive force :math:`F_c` (for the SJKR model) 
+        """Returns the cohesive force :math:`F_c` (for the SJKR model)
 
-		:param delta: normal displacement
-		:type delta: float
-		:return: cohesvie force
-		:rtype: float
-		"""
+        :param delta: normal displacement
+        :type delta: float
+        :return: cohesvie force
+        :rtype: float
+        """
         radius = self.radius
 
         return self.cohesionEnergyDensity * 2.0 * np.pi * delta * 2.0 * radius
 
     def normalForce(self, delta, deltav):
-        """ Returns the total normal force :math:`F_n + F_d + F_c`
+        """Returns the total normal force :math:`F_n + F_d + F_c`
 
-		:param delta: normal displacement
-		:type delta: float
-		:param deltav: time derivative of the normal displacement
-		:type deltav: float
-		:return: total normal force
-		:rtype: float
-		"""
+        :param delta: normal displacement
+        :type delta: float
+        :param deltav: time derivative of the normal displacement
+        :type deltav: float
+        :return: total normal force
+        :rtype: float
+        """
 
         force = self.elasticForce(delta) - self.dissForce(delta, deltav)
 
@@ -855,8 +863,8 @@ class SpringDashpot(Model):
 
 class HertzMindlin(Model):
     """
-	A class that implements the linear spring model for granular materials
-	"""
+    A class that implements the linear spring model for granular materials
+    """
 
     def __init__(self, **params):
         super(HertzMindlin, self).__init__(**params)
@@ -878,14 +886,14 @@ class HertzMindlin(Model):
             self.limitForce = self.params["limitForce"]
 
     def springStiff(self, delta):
-        """ Computes the spring constant :math:`k_n` for `F_n = k_n \delta_n^{3/2}`
+        """Computes the spring constant :math:`k_n` for `F_n = k_n \delta_n^{3/2}`
 
-		:param delta: normal displacement
-		:type delta: float
-		:return: stiffness (:math:`k_n`)
-		:rtype: float
+        :param delta: normal displacement
+        :type delta: float
+        :return: stiffness (:math:`k_n`)
+        :rtype: float
 
-		"""
+        """
         poiss = self.poissonsRatio
         yMod = self.youngsModulus
         yEff = yMod * 0.5 / (1.0 - poiss ** 2)
@@ -895,26 +903,26 @@ class HertzMindlin(Model):
         return 4.0 / 3.0 * yEff * contRadius
 
     def elasticForce(self, delta):
-        """ Returns the Hertzian elastic force :math:`F_n = k_n \delta_n^{3/2}`
+        """Returns the Hertzian elastic force :math:`F_n = k_n \delta_n^{3/2}`
 
-		:param delta: normal displacement
-		:type delta: float
-		:return: elastic normal force
-		:rtype: float
-		"""
+        :param delta: normal displacement
+        :type delta: float
+        :return: elastic normal force
+        :rtype: float
+        """
 
         force = self.springStiff(delta) * delta
 
         return force
 
     def dissCoef(self, delta):
-        """ Returns the dissipative force coefficient 
+        """Returns the dissipative force coefficient
 
-		:param delta: normal displacement
-		:type delta: float
-		:return: coefficient for dissipative (viscous) normal force
-		:rtype: float
-		"""
+        :param delta: normal displacement
+        :type delta: float
+        :return: coefficient for dissipative (viscous) normal force
+        :rtype: float
+        """
         rest = self.coefficientRestitution
         yMod = self.youngsModulus
         poiss = self.poissonsRatio
@@ -933,29 +941,29 @@ class HertzMindlin(Model):
         )
 
     def dissForce(self, delta, deltav):
-        """ Returns the dissipative force
+        """Returns the dissipative force
 
-		:param delta: normal displacement
-		:type delta: float
-		:param deltav: time derivative of the normal displacement
-		:type deltav: float
+        :param delta: normal displacement
+        :type delta: float
+        :param deltav: time derivative of the normal displacement
+        :type deltav: float
 
-		:return: dissipative force
-		:rtype: float
-		 """
+        :return: dissipative force
+        :rtype: float
+        """
         return self.dissCoef(delta) * deltav
 
     def normalForce(self, delta, deltav):
-        """ Returns the total normal force :math:`F_n + F_d + F_c`
+        """Returns the total normal force :math:`F_n + F_d + F_c`
 
-		:param delta: normal displacement
-		:type delta: float
-		:param deltav: time derivative of the normal displacement
-		:type deltav: float
+        :param delta: normal displacement
+        :type delta: float
+        :param deltav: time derivative of the normal displacement
+        :type deltav: float
 
-		:return: total normal force
-		:rtype: float
-		"""
+        :return: total normal force
+        :rtype: float
+        """
 
         force = self.elasticForce(delta) - self.dissForce(delta, deltav)
 
@@ -965,13 +973,13 @@ class HertzMindlin(Model):
         return force
 
     def cohesiveForce(self, delta):
-        """ Returns the cohesive force for the simplified JKR model
+        """Returns the cohesive force for the simplified JKR model
 
-		:param delta: normal displacement
-		:type delta: float
-		:return: cohesive force
-		:rtype: float
-		"""
+        :param delta: normal displacement
+        :type delta: float
+        :return: cohesive force
+        :rtype: float
+        """
         radius = self.radius
 
         return self.cohesionEnergyDensity * 2.0 * np.pi * delta * 2.0 * radius
@@ -979,8 +987,8 @@ class HertzMindlin(Model):
 
 class ThorntonNing(Model):
     """
-	A basic class that implements the Thornton elasto-plastic model based on :cite:`thornton1998theoretical`. 
-	"""
+    A basic class that implements the Thornton elasto-plastic model based on :cite:`thornton1998theoretical`.
+    """
 
     def __init__(self, **params):
 
@@ -1006,11 +1014,11 @@ class ThorntonNing(Model):
             self.noCheck = False
 
     def computeYieldRadius(self):
-        """ Computes the contact radius at the yield point based on Eq. (65) in :cite:`thornton1998theoretical` 
+        """Computes the contact radius at the yield point based on Eq. (65) in :cite:`thornton1998theoretical`
 
-		return: yielding contact radius
-		rtype: float
-		"""
+        return: yielding contact radius
+        rtype: float
+        """
 
         poiss = self.poissonsRatio
         yEff = self.youngsModulus / (2.0 * (1.0 - poiss ** 2))
@@ -1039,14 +1047,14 @@ class ThorntonNing(Model):
         return contRadius
 
     def springStiff(self, delta):
-        """ Computes the spring constant :math:`k_n` for `F_n = k_n \delta_n^{3/2}`
-		
-		:param delta: normal displacement
-		:type delta: float
-		:return: stiffness (:math:`k_n`)
-		:rtype: float
+        """Computes the spring constant :math:`k_n` for `F_n = k_n \delta_n^{3/2}`
 
-		"""
+        :param delta: normal displacement
+        :type delta: float
+        :return: stiffness (:math:`k_n`)
+        :rtype: float
+
+        """
         poiss = self.poissonsRatio
         yMod = self.youngsModulus
         yEff = yMod * 0.5 / (1.0 - poiss ** 2)
@@ -1054,13 +1062,13 @@ class ThorntonNing(Model):
         return 4.0 / 3.0 * yEff * self._contactRadius(delta, self.radius)
 
     def elasticForce(self, delta):
-        """ Returns the Hertzian-like elastic force
+        """Returns the Hertzian-like elastic force
 
-		:param delta: normal displacement
-		:type delta: float
-		:return: elastic normal force
-		:rtype: float
-		"""
+        :param delta: normal displacement
+        :type delta: float
+        :return: elastic normal force
+        :rtype: float
+        """
 
         poiss = self.poissonsRatio
         yMod = self.youngsModulus
@@ -1142,15 +1150,15 @@ class ThorntonNing(Model):
             return force
 
     def dissForce(self, delta, deltav=None):
-        """ Computes the piece-wise defined elastic force 
+        """Computes the piece-wise defined elastic force
 
-		:param delta: normal displacement
-		:type delta: float
-		:param deltav: time derivative of the normal displacement
-		:type deltav: float
-		:return: dissipative force
-		:rtype: float
-		"""
+        :param delta: normal displacement
+        :type delta: float
+        :param deltav: time derivative of the normal displacement
+        :type deltav: float
+        :return: dissipative force
+        :rtype: float
+        """
 
         py = self.yieldPress
 
@@ -1165,16 +1173,16 @@ class ThorntonNing(Model):
             return 0
 
     def normalForce(self, delta, deltav):
-        """ Returns the total normal force
+        """Returns the total normal force
 
-		:param delta: normal displacement
-		:type delta: float
-		:param deltav: time derivative of the normal displacement
-		:type deltav: float
-		:return: total normal force
-		:rtype: float
+        :param delta: normal displacement
+        :type delta: float
+        :param deltav: time derivative of the normal displacement
+        :type deltav: float
+        :return: total normal force
+        :rtype: float
 
-		 """
+        """
 
         force = self.elasticForce(delta) + self.dissForce(delta, deltav)
 
@@ -1184,13 +1192,13 @@ class ThorntonNing(Model):
         return force
 
     def cohesiveForce(self, delta=None):
-        """ Returns the JKR cohesive force
+        """Returns the JKR cohesive force
 
-		:param delta: useless variable kept here for syntax consistency
-		:type delta: None
-		:return: cohesive force
-		:rtype: float
-		"""
+        :param delta: useless variable kept here for syntax consistency
+        :type delta: None
+        :return: cohesive force
+        :rtype: float
+        """
 
         poiss = self.poissonsRatio
         yMod = self.youngsModulus
@@ -1215,11 +1223,11 @@ class ThorntonNing(Model):
 
     @property
     def yieldVel(self):
-        """ Returns the minimum velocity required for a colliding particle to undergo plastic deformation
+        """Returns the minimum velocity required for a colliding particle to undergo plastic deformation
 
-		:return: yielding velocity
-		:rtype: float
-		"""
+        :return: yielding velocity
+        :rtype: float
+        """
 
         poiss = self.poissonsRatio
         yEff = 0.5 * self.youngsModulus / (1.0 - poiss ** 2)
