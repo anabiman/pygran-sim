@@ -31,23 +31,23 @@ import sys
 
 
 def dictToTuple(**args):
-    """ Converts a dictionary (args) to a tuple 
+    """Converts a dictionary (args) to a tuple
 
-	:param args: dictionary used mainly by liggghts API
-	:type args: dict
+    :param args: dictionary used mainly by liggghts API
+    :type args: dict
 
-	:Example:
-	   args = {'key_1': value1, 'key_2': value2}
-	   dictToTuple(**args) -> ('key_1', value1, 'key_2', value2)
+    :Example:
+       args = {'key_1': value1, 'key_2': value2}
+       dictToTuple(**args) -> ('key_1', value1, 'key_2', value2)
 
-	:note: If value1 is a tuple, it is broken into a string
-	:Example:
-	   args = {'key_1': (1,2,3)}
-	   dictToTuple(**args) -> ('key_1', '1 2 3')
+    :note: If value1 is a tuple, it is broken into a string
+    :Example:
+       args = {'key_1': (1,2,3)}
+       dictToTuple(**args) -> ('key_1', '1 2 3')
 
-	:return: dictionary key/values refactored if needed
-	:rtype: tuple
-	"""
+    :return: dictionary key/values refactored if needed
+    :rtype: tuple
+    """
 
     keys = args.keys()
     vals = args.values()
@@ -62,14 +62,14 @@ def dictToTuple(**args):
 
 
 def pygranToLIGGGHTS(**material):
-    """ Transform a PyGran material database into a LIGGGHTS material dictionary
+    """Transform a PyGran material database into a LIGGGHTS material dictionary
 
-	:param material: definition of material(s) used mainly by liggghts API
-	:type material: dict
+    :param material: definition of material(s) used mainly by liggghts API
+    :type material: dict
 
-	return: definition of material(s) in LIGGGHTS-compatible format
-	:rtype: dict
- 	"""
+    return: definition of material(s) in LIGGGHTS-compatible format
+    :rtype: dict
+    """
 
     for key in material:
         if key is "youngsModulus" or key is "poissonsRatio" or key is "yieldPress":
@@ -89,17 +89,17 @@ def pygranToLIGGGHTS(**material):
 
 
 def find(fname, path):
-    """ Finds a filename (fname) along the path `path' 
+    """Finds a filename (fname) along the path `path'
 
-	:param fname: filename
-	:type fname: str
+    :param fname: filename
+    :type fname: str
 
-	:param path: search path
-	:type path: str
+    :param path: search path
+    :type path: str
 
-	:return: absolute path of the fname if found, else None
-	:rtype: str/None
-	"""
+    :return: absolute path of the fname if found, else None
+    :rtype: str/None
+    """
     for root, dirs, files in os.walk(path):
         if fname in files:
             return os.path.join(root, fname)
@@ -108,14 +108,14 @@ def find(fname, path):
 
 
 def run(program):
-    """ Unix only: launches an executable program available in the PATH environment variable.
+    """Unix only: launches an executable program available in the PATH environment variable.
 
-	:param program: name of the executable to search for
-	:type program: str
+    :param program: name of the executable to search for
+    :type program: str
 
-	:return: 0 if successful and 1 otherwise
-	:rtype: bool
-	 """
+    :return: 0 if successful and 1 otherwise
+    :rtype: bool
+    """
     paths = os.environ["PATH"]
 
     for path in paths.split(":"):
@@ -131,32 +131,32 @@ def run(program):
 
 
 def configure(path, version=None, src=None):
-    """ Configures PyGran to use a specific DEM/engine library
+    """Configures PyGran to use a specific DEM/engine library
 
-	:param path: path to library
-	:type path: str
+    :param path: path to library
+    :type path: str
 
-	:param version: a set of numbers and/or characters indicating the version of the library, e.g. 1.5a
-	:type version: str
+    :param version: a set of numbers and/or characters indicating the version of the library, e.g. 1.5a
+    :type version: str
 
-	:param src: path to library source code
-	:type src: str
-	 """
+    :param src: path to library source code
+    :type src: str
+    """
     _setLIGGGHTS(path, version, src)
 
 
 def _setLIGGGHTS(path, version=None, src=None):
-    """ Write libliggghts path to ~/.config/liggghts.ini file
+    """Write libliggghts path to ~/.config/liggghts.ini file
 
-        :param path: path to LIGGGHTS library
-        :type path: str
+    :param path: path to LIGGGHTS library
+    :type path: str
 
-        :param version: a set of numbers and/or characters indicating the version of the library, e.g. 1.5a
-        :type version: str
+    :param version: a set of numbers and/or characters indicating the version of the library, e.g. 1.5a
+    :type version: str
 
-        :param src: path to LIGGGHTS source code
-        :type src: str
-	"""
+    :param src: path to LIGGGHTS source code
+    :type src: str
+    """
 
     _configdir = os.path.join(os.path.expanduser("~"), ".config", "PyGran")
     liggghts_ini = os.path.join(_configdir, "liggghts.ini")
@@ -174,14 +174,14 @@ def _setLIGGGHTS(path, version=None, src=None):
 
 
 def _findEngines(engine):
-    """ Searches for and lists all available libraries for a specific engine
+    """Searches for and lists all available libraries for a specific engine
 
-	:param engine: DEM engine specification
-	:type engine: str
+    :param engine: DEM engine specification
+    :type engine: str
 
-	:return: all DEM engines found on the system
-	:rtype: list
-	 """
+    :return: all DEM engines found on the system
+    :rtype: list
+    """
 
     engines = [
         os.path.join(root, engine)
@@ -200,19 +200,19 @@ def _findEngines(engine):
 
 
 def _setConfig(wdir, engine):
-    """ Reads/writes DEM library to config .ini file
+    """Reads/writes DEM library to config .ini file
 
-	:param wdir: working directory
-	:type wdir: str
+    :param wdir: working directory
+    :type wdir: str
 
-	:param engine: DEM engine specification
-	:type engine: str
+    :param engine: DEM engine specification
+    :type engine: str
 
-	:return: path to library, source, and version of DEM library
-	:rtype: tuple
+    :return: path to library, source, and version of DEM library
+    :rtype: tuple
 
-	.. todo: Make this function platform and liggghts independent
-	"""
+    .. todo: Make this function platform and liggghts independent
+    """
     library, src, version = "", None, None
 
     _configdir = os.path.join(os.path.expanduser("~"), ".config", "PyGran")

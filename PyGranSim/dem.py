@@ -52,17 +52,17 @@ __all__ = ["DEM"]
 
 class DEM:
     """A generic class that handles communication for a DEM object in a way that
-  is independent of the engine used"""
+    is independent of the engine used"""
 
     def __init__(self, **pargs):
-        """ Upon instantiation, this object initializes an MPI communicator and 
-    partitions proccesors based on user input
+        """Upon instantiation, this object initializes an MPI communicator and
+        partitions proccesors based on user input
 
-    :param model: contact mechanical model (default SpringDashpot)
-    :type model: model
+        :param model: contact mechanical model (default SpringDashpot)
+        :type model: model
 
-    .. todo:: Provide a description of each arg in pargs
-     """
+        .. todo:: Provide a description of each arg in pargs
+        """
 
         # Instantiate contact model and store it in pargs
         if "model" not in pargs:
@@ -310,14 +310,14 @@ class DEM:
                 break
 
     def velocity(self, *args):
-        """ Assigns velocity to selected particles.
+        """Assigns velocity to selected particles.
 
-    :param args: group-ID style args keyword value
-    :type args: tuple
+        :param args: group-ID style args keyword value
+        :type args: tuple
 
-    :note: See `link <https://www.cfdem.com/media/DEM/docu/velocity.html>`_ 
-           for info on keywords and their associated values.
-    """
+        :note: See `link <https://www.cfdem.com/media/DEM/docu/velocity.html>`_
+               for info on keywords and their associated values.
+        """
 
         for i in range(self.nSim):
             if self.rank < self.pProcs * (i + 1):
@@ -325,18 +325,18 @@ class DEM:
                 break
 
     def addViscous(self, **args):
-        """ Adds a viscous damping force :math:`F` proportional
-    to each particle's velocity :math:`v`:
-    
-    :math:`F = - \\gamma v`
+        """Adds a viscous damping force :math:`F` proportional
+        to each particle's velocity :math:`v`:
 
-    :param species: species index (0, 1, ...)
-    :type species: int
-    :param gamma: viscosity coefficient (:math:`\\gamma`)
-    :type gamma: positive float
-    :param scale: (species, ratio) tuple to scale gamma with
-    :type scale: tuple
-    """
+        :math:`F = - \\gamma v`
+
+        :param species: species index (0, 1, ...)
+        :type species: int
+        :param gamma: viscosity coefficient (:math:`\\gamma`)
+        :type gamma: positive float
+        :param scale: (species, ratio) tuple to scale gamma with
+        :type scale: tuple
+        """
         for i in range(self.nSim):
             if self.rank < self.pProcs * (i + 1):
                 return self.dem.addViscous(**args)
@@ -361,8 +361,8 @@ class DEM:
 
     def createProperty(self, name, *args):
         """
-    Internal function used to create material and interaction properties
-    """
+        Internal function used to create material and interaction properties
+        """
 
         for i in range(self.nSim):
             if self.rank < self.pProcs * (i + 1):
@@ -374,15 +374,15 @@ class DEM:
 
     def importMeshes(self, name=None):
         """
-    An internal function that is called during DEM initialization for importing meshes.
-    Unless `name` is supplied, this function by default imports all meshes and sets 
-    them up as walls.
+        An internal function that is called during DEM initialization for importing meshes.
+        Unless `name` is supplied, this function by default imports all meshes and sets
+        them up as walls.
 
-    :param name: mesh name
-    :type name: str
+        :param name: mesh name
+        :type name: str
 
-    :note: Can import only one mesh specified by the `name` keyword.
-    """
+        :note: Can import only one mesh specified by the `name` keyword.
+        """
         for i in range(self.nSim):
             if self.rank < self.pProcs * (i + 1):
                 self.dem.importMeshes(name)
@@ -390,20 +390,20 @@ class DEM:
 
     def importMesh(self, name, file, mtype, **args):
         """
-    Imports a mesh file (STL or VTK)
+        Imports a mesh file (STL or VTK)
 
-    :param name: define mesh name
-    :type name: str
-    :param file: mesh file pathname
-    :type file: str
-    :param mtype: mesh type (mesh/surface, mesh/surface/stress/deform, etc.)
-    :type mtype: str
-    :param args: mesh_keywords
-    :type args: dict 
+        :param name: define mesh name
+        :type name: str
+        :param file: mesh file pathname
+        :type file: str
+        :param mtype: mesh type (mesh/surface, mesh/surface/stress/deform, etc.)
+        :type mtype: str
+        :param args: mesh_keywords
+        :type args: dict
 
-    :note: see `link <https://www.cfdem.com/media/DEM/docu/fix_mesh_surface.html>`_ 
-           for further info on `mtype` and `args`.
-    """
+        :note: see `link <https://www.cfdem.com/media/DEM/docu/fix_mesh_surface.html>`_
+               for further info on `mtype` and `args`.
+        """
         for i in range(self.nSim):
             if self.rank < self.pProcs * (i + 1):
                 self.dem.importMesh(name, file, mtype, **args)
@@ -411,32 +411,32 @@ class DEM:
 
     def setupWall(self, wtype, species=None, plane=None, peq=None):
         """
-    Creates a primitive (virtual) or surface (mesh) wall
+        Creates a primitive (virtual) or surface (mesh) wall
 
-    :param wtype: type of the wall (primitive or mesh)
-    :type wtype: string
-    :param species: species type or primitive (virtual) walls
-    :type species: int
-    :param plane: x, y, or z plane for primitive (virtual) walls
-    :type plane: string
-    :param peq: plane equation for primitive (virtual) walls
-    :type peq: float
-    :return: wall name
-    :rtype: string
+        :param wtype: type of the wall (primitive or mesh)
+        :type wtype: string
+        :param species: species type or primitive (virtual) walls
+        :type species: int
+        :param plane: x, y, or z plane for primitive (virtual) walls
+        :type plane: string
+        :param peq: plane equation for primitive (virtual) walls
+        :type peq: float
+        :return: wall name
+        :rtype: string
 
-    :Example:
-      primitiveWall = setupWall(species=1, wtype='primitive', plane = 'zplane', peq = 0.0)
+        :Example:
+          primitiveWall = setupWall(species=1, wtype='primitive', plane = 'zplane', peq = 0.0)
 
-    """
+        """
         for i in range(self.nSim):
             if self.rank < self.pProcs * (i + 1):
                 return self.dem.setupWall(wtype, species, plane, peq)
 
     def printSetup(self):
         """
-    Updates the print setup used to set which variables to write to file, 
-    and their format.
-    """
+        Updates the print setup used to set which variables to write to file,
+        and their format.
+        """
         for i in range(self.nSim):
             if self.rank < self.pProcs * (i + 1):
                 self.dem.printSetup()
@@ -444,17 +444,17 @@ class DEM:
 
     def writeSetup(self, only_mesh=False, name=None):
         """
-    This creates dump files for particles and meshes in the system. In LIGGGHTS, all meshes must be declared once, so if a mesh is removed during
-    the simulation, this function has to be called again, usually with only_mesh=True to keep the particle dump intact.
+        This creates dump files for particles and meshes in the system. In LIGGGHTS, all meshes must be declared once, so if a mesh is removed during
+        the simulation, this function has to be called again, usually with only_mesh=True to keep the particle dump intact.
 
-    :param only_mesh: controls if the particle dump is updated
-    :type only_mesh: bool
-    :param name: name of the particle dump
-    :type name: str
-    :return: mesh dump ID(s)
-    :rtype: str or list(str)
+        :param only_mesh: controls if the particle dump is updated
+        :type only_mesh: bool
+        :param name: name of the particle dump
+        :type name: str
+        :return: mesh dump ID(s)
+        :rtype: str or list(str)
 
-    """
+        """
         for i in range(self.nSim):
             if self.rank < self.pProcs * (i + 1):
                 dumpID = self.dem.writeSetup(only_mesh, name)
@@ -478,14 +478,14 @@ class DEM:
 
     def setupIntegrate(self, itype="nve/sphere", group="all"):
         """
-    Controls how Newton's eqs are integrated in time. 
+        Controls how Newton's eqs are integrated in time.
 
-    :param itype: integrator type ('nve/sphere' or 'multisphere')
-    :type itype: str
-    :param group: particle group ID to apply the integration for
-    :type group: str
+        :param itype: integrator type ('nve/sphere' or 'multisphere')
+        :type itype: str
+        :param group: particle group ID to apply the integration for
+        :type group: str
 
-    """
+        """
         for i in range(self.nSim):
             if self.rank < self.pProcs * (i + 1):
                 self.dem.setupIntegrate(name, itype, group)
@@ -493,14 +493,14 @@ class DEM:
 
     def integrate(self, steps, dt):
         """
-    Advance system in time.
+        Advance system in time.
 
-    :param steps: number of steps
-    :type steps: int
-    :param dt: timestep
-    :type dt: float
+        :param steps: number of steps
+        :type steps: int
+        :param dt: timestep
+        :type dt: float
 
-    """
+        """
         for i in range(self.nSim):
             if self.rank < self.pProcs * (i + 1):
                 self.dem.integrate(steps, dt, itype)
@@ -508,11 +508,11 @@ class DEM:
 
     def remove(self, name):
         """
-    Delete variable/object by name.
+        Delete variable/object by name.
 
-    :param name: name of variable/object to unfix
-    :type name: str
-    """
+        :param name: name of variable/object to unfix
+        :type name: str
+        """
         for i in range(self.nSim):
             if self.rank < self.pProcs * (i + 1):
                 self.dem.remove(name)
@@ -520,16 +520,16 @@ class DEM:
 
     def monitor(self, **args):
         """
-    Not yet documented
-    """
+        Not yet documented
+        """
         for i in range(self.nSim):
             if self.rank < self.pProcs * (i + 1):
                 return self.dem.monitor(**args)
 
     def plot(self, fname, xlabel, ylabel, output=None, xscale=None):
         """
-    Not yet documented
-    """
+        Not yet documented
+        """
         for i in range(self.nSim):
             if self.rank < self.pProcs * (i + 1):
                 self.dem.plot(fname, xlabel, ylabel, output, xscale)
@@ -537,16 +537,16 @@ class DEM:
 
     def moveMesh(self, name, **args):
         """
-    Not yet documented
-    """
+        Not yet documented
+        """
         for i in range(self.nSim):
             if self.rank < self.pProcs * (i + 1):
                 return self.dem.moveMesh(name, **args)
 
     def saveas(self, name, fname):
         """
-    Not yet documented
-    """
+        Not yet documented
+        """
         for i in range(self.nSim):
             if self.rank < self.pProcs * (i + 1):
                 self.dem.saveas(name, fname)
@@ -554,11 +554,11 @@ class DEM:
 
     def command(self, cmd):
         """
-    Pass a command to DEM engine.
+        Pass a command to DEM engine.
 
-    :param cmd: command specific to the DEM engine
-    :type cmd: str
-    """
+        :param cmd: command specific to the DEM engine
+        :type cmd: str
+        """
         for i in range(self.nSim):
             if self.rank < self.pProcs * (i + 1):
                 self.dem.command(cmd)
@@ -566,8 +566,8 @@ class DEM:
 
     def close(self):
         """
-    Internal function that frees allocated memory and changes directory back to current working directory. 
-    """
+        Internal function that frees allocated memory and changes directory back to current working directory.
+        """
         # Dont call this since the user might be running multiple simulations in one script
         # MPI.Finalize()
         for i in range(self.nSim):

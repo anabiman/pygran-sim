@@ -37,12 +37,12 @@ import os, glob
 
 
 def _find_number_models(src_dir, mtype="normal"):
-    """ Finds the total number of contact models available in the liggghts src dir 
+    """Finds the total number of contact models available in the liggghts src dir
 
-	@src_dir: directory to search the contact model header files in
-	@[mtype]: 'normal' (default) or 'tangential' contact models to search for
+    @src_dir: directory to search the contact model header files in
+    @[mtype]: 'normal' (default) or 'tangential' contact models to search for
 
-	"""
+    """
 
     nModels = []
 
@@ -80,32 +80,32 @@ def _parse(exp):
 
 
 def register(**args):
-    """ Generates a c++ header file for a contact model and compiles it during runtime.
+    """Generates a c++ header file for a contact model and compiles it during runtime.
 
-	:param stiffness: analytical form of the stiffness = force / deltan
-	:type stiffness: str
+    :param stiffness: analytical form of the stiffness = force / deltan
+    :type stiffness: str
 
-	:param viscosity: analytical form of the viscosity term (force = viscosity * vn).
-	:type viscosity: str
+    :param viscosity: analytical form of the viscosity term (force = viscosity * vn).
+    :type viscosity: str
 
-	Material parameters that can be used:
-	Yeff: effective Young's modulus
-	Geff: effective Shear modulus
-	meff: effective mass
-	reff: effective radius
-	charVel: characteristic impact velocity
-	restLog: log of the coefficient of restitution
-	deltan: normal displacement
-	vn: velocity of the normal displacement
-	kn: stiffness
-	PI: constant (3.14 ...)
+    Material parameters that can be used:
+    Yeff: effective Young's modulus
+    Geff: effective Shear modulus
+    meff: effective mass
+    reff: effective radius
+    charVel: characteristic impact velocity
+    restLog: log of the coefficient of restitution
+    deltan: normal displacement
+    vn: velocity of the normal displacement
+    kn: stiffness
+    PI: constant (3.14 ...)
 
-	:example: register(name='my_model',
-		  stiffness = '6./15.*sqrt(reff)*(Yeff)*pow(15.*meff*charVel*charVel/(16.*sqrt(reff)*Yeff),0.2)',
-		  viscosity = 'sqrt(4.*meff*kn*restLogChosen*restLogChosen/(restLogChosen*restLogChosen+PI*PI))')
+    :example: register(name='my_model',
+              stiffness = '6./15.*sqrt(reff)*(Yeff)*pow(15.*meff*charVel*charVel/(16.*sqrt(reff)*Yeff),0.2)',
+              viscosity = 'sqrt(4.*meff*kn*restLogChosen*restLogChosen/(restLogChosen*restLogChosen+PI*PI))')
 
-		  produces a template header file for the spring-dashpot model called 'my_model'.
-	"""
+              produces a template header file for the spring-dashpot model called 'my_model'.
+    """
 
     # Make sure everything is done on the master processor
     try:

@@ -33,10 +33,10 @@ from ._version import __version__, __author__, __email__
 
 
 class _findEngines:
-    """ Any engine module *must* follow the naming convention: engine_foo.py
-	If engine `foo` is found, it will be linked via setattr to be imported
-	in DEM.py as PyGranSim.engine_foo. The engine is set by the user
-	as DEM.simulation.engines.foo. """
+    """Any engine module *must* follow the naming convention: engine_foo.py
+    If engine `foo` is found, it will be linked via setattr to be imported
+    in DEM.py as PyGranSim.engine_foo. The engine is set by the user
+    as DEM.simulation.engines.foo."""
 
     def __init__(self):
         _dir, _ = __file__.split("__init__.py")
