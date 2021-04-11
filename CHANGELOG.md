@@ -21,10 +21,12 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ## [1.0.2]
 ### Added
 - Keyword 'psd_style' (default: 'numberbased') to particle distribution
+- Versioneer for automated version control
 
 ### Changed
 - Log filename from 'dem' to 'pygran'
 - Fixed bug (missing dimension for cylindrical boxes) in 'models' module 
+- CI migration to github actions
 
 ### Removed
 - generator module
