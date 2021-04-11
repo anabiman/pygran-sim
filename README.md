@@ -27,7 +27,7 @@ PyGranSim is part of the PyGran project, an open-source toolkit primarily design
 ## Quick Installation
 PyGranSim is typically installed with other PyGran submodules. See [here](http://andrew-abimansour.github.io/PyGran/docs/introduction.html#installation) for more info. For a solo PyGranSim local installation, simply clone this repository and then use pip to run from the source dir:
 ```bash
-pip install . --user
+pip install pygran_sim
 ```
 You can alternatively run ``setup.py`` to build and/or install the package. See ``setup.py -h`` for more info.
 
@@ -35,7 +35,6 @@ You can alternatively run ``setup.py`` to build and/or install the package. See 
 ## Basic Usage
 PyGranSim provides an interface for running DEM simulation with the following engines:
 - [LIGGGHTS](https://www.cfdem.com/liggghtsr-open-source-discrete-element-method-particle-simulation-code). 
-- [SIMPLE](): a simple DEM simulator in 1D for investigating contact mechanical models
 
 This is achieved by importing the <i>simulation</i> module as shown in the script below for simulating granular flow in a hopper.
 
