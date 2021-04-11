@@ -40,7 +40,7 @@ jobs:
     - name: Install ext libraries 
       shell: bash
       run: |
-        sudo apt-get install libopenmpi-dev openmpi-common openmpi-bin vtk6 libvtk6-dev
+        sudo apt-get install libopenmpi-dev openmpi-common openmpi-bin vtk7 libvtk7-dev
 
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
