@@ -110,7 +110,7 @@ def register(**args):
     # Make sure everything is done on the master processor
     try:
         rank = MPI.COMM_WORLD.Get_rank()
-    except:
+    except Exception:
         rank = 0
 
     if not rank:
