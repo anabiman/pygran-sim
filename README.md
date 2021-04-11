@@ -1,6 +1,7 @@
 # Welcome to the PyGranSim webpage!
 [//]: # (Badges)
-[![CI](https://github.com/Andrew-AbiMansour/PyGranSim/actions/workflows/CI.yaml/badge.svg)](https://github.com/Andrew-AbiMansour/PyGranSim/actions/workflows/CI.yaml)[![Total alerts](https://img.shields.io/lgtm/alerts/g/Andrew-AbiMansour/PyGranParams.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/Andrew-AbiMansour/PyGranParams/alerts/)
+[![CI](https://github.com/Andrew-AbiMansour/PyGranSim/actions/workflows/CI.yaml/badge.svg)](https://github.com/Andrew-AbiMansour/PyGranSim/actions/workflows/CI.yaml)
+[![Total alerts](https://img.shields.io/lgtm/alerts/g/Andrew-AbiMansour/PyGranSim.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/Andrew-AbiMansour/PyGranSim/alerts/)
 [![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/Andrew-AbiMansour/PyGranSim.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/Andrew-AbiMansour/PyGranSim/context:python)
 [![codecov](https://codecov.io/gh/Andrew-AbiMansour/PyGranSim/branch/master/graph/badge.svg)](https://codecov.io/gh/Andrew-AbiMansour/PyGranSim/branch/master)
 
@@ -24,7 +25,7 @@ PyGranSim is part of the PyGran project, an open-source toolkit primarily design
 ```
 
 ## Quick Installation
-PyGranSim is typically installed with other PyGran submodules. See [here](http://andrew-abimansour.github.io/PyGran/docs/introduction.html#installation) for more info. For a solo PyGranSim local installation, simply clone this repository and then use pip (or pip3) to run from the source dir:
+PyGranSim is typically installed with other PyGran submodules. See [here](http://andrew-abimansour.github.io/PyGran/docs/introduction.html#installation) for more info. For a solo PyGranSim local installation, simply clone this repository and then use pip to run from the source dir:
 ```bash
 pip install . --user
 ```
@@ -32,7 +33,11 @@ You can alternatively run ``setup.py`` to build and/or install the package. See 
 
 
 ## Basic Usage
-PyGranSim also provides an interface for running DEM simulation with [LIGGGHTS](https://www.cfdem.com/liggghtsr-open-source-discrete-element-method-particle-simulation-code). This is achieved by importing the <i>simulation</i> module as shown in the script below for simulating granular flow in a hopper.
+PyGranSim provides an interface for running DEM simulation with the following engines:
+- [LIGGGHTS](https://www.cfdem.com/liggghtsr-open-source-discrete-element-method-particle-simulation-code). 
+- [SIMPLE](): a simple DEM simulator in 1D for investigating contact mechanical models
+
+This is achieved by importing the <i>simulation</i> module as shown in the script below for simulating granular flow in a hopper.
 
 <p style="text-align:center;"><img src="http://andrew-abimansour.github.io/PyGran/images/hopper.png" width="600"></p>
 
