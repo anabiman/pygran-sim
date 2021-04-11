@@ -1,2 +1,3 @@
 include versioneer.py
+include requirements.txt
 include pygran_sim/_version.py

@@ -30,3 +30,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Removed
 - generator module
+
+## [1.0.3]
+### Added
+- requiremens.txt to src dir
+
+### Changed
+- Numerous minor fixes and improvements in code quality
