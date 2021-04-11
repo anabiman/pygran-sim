@@ -52,7 +52,7 @@ __all__ = ["DEM"]
 
 class DEM:
     """A generic class that handles communication for a DEM object in a way that
-    is independent of the engine used"""
+    is independent of the engine used."""
 
     def __init__(self, **pargs):
         """Upon instantiation, this object initializes an MPI communicator and
@@ -242,7 +242,7 @@ class DEM:
                 self.pfile = os.path.join(
                     self.pargs["output"], "traj", self.pargs["traj"]["pfile"]
                 )
-                self.pargs["traj"]["pfile"] = self.pfile
+                self.pargs["traj"]["pfile"] = os.path.abspath(self.pfile)
             else:
                 self.pfile = None
 
@@ -251,7 +251,7 @@ class DEM:
                 self.mfile = os.path.join(
                     self.pargs["output"], "traj", self.pargs["traj"]["mfile"]
                 )
-                self.pargs["traj"]["mfile"] = self.mfile
+                self.pargs["traj"]["mfile"] = os.path.abspath(self.mfile)
             else:
                 self.mfile = None
 
@@ -388,25 +388,27 @@ class DEM:
                 self.dem.importMeshes(name)
                 break
 
-    def importMesh(self, name, file, mtype, **args):
+    def importMesh(self, name, file, mtype, **kwargs):
         """
         Imports a mesh file (STL or VTK)
 
         :param name: define mesh name
         :type name: str
-        :param file: mesh file pathname
+        :param file: mesh file path
         :type file: str
         :param mtype: mesh type (mesh/surface, mesh/surface/stress/deform, etc.)
         :type mtype: str
-        :param args: mesh_keywords
-        :type args: dict
+        :param kwargs: mesh_keywords
+        :type kwargs: dict
 
         :note: see `link <https://www.cfdem.com/media/DEM/docu/fix_mesh_surface.html>`_
                for further info on `mtype` and `args`.
         """
+        mfile = os.path.abspath(file)
+
         for i in range(self.nSim):
             if self.rank < self.pProcs * (i + 1):
-                self.dem.importMesh(name, file, mtype, **args)
+                self.dem.importMesh(name, mfile, mtype, **kwargs)
                 break
 
     def setupWall(self, wtype, species=None, plane=None, peq=None):
@@ -461,17 +463,16 @@ class DEM:
 
                 # Create or update links to the particle/mesh files (easily accessible to the user)
                 if "pfile" in self.lmp.pargs["traj"]:
-                    self.pfile = (
-                        self.lmp.pargs["output"]
-                        + "/traj/"
-                        + self.lmp.pargs["traj"]["pfile"]
+                    self.pfile = os.path.join(self.lmp.pargs["output"],
+                        "traj",
+                        self.lmp.pargs["traj"]["pfile"]
                     )
 
                 if "mfile" in self.lmp.pargs["traj"]:
-                    self.mfile = (
-                        self.lmp.pargs["output"]
-                        + "/traj/"
-                        + self.lmp.pargs["traj"]["mfile"]
+                    self.mfile = os.path.join(
+                        self.lmp.pargs["output"],
+                        "traj",
+                        self.lmp.pargs["traj"]["mfile"]
                     )
 
                 return dumpID
