@@ -26,10 +26,17 @@ If not, see http://www.gnu.org/licenses . See also top-level README
 and LICENSE files.
 """
 
+# Handle versioneer
+from ._version import get_versions
+
+versions = get_versions()
+__version__ = versions["version"]
+__git_revision__ = versions["full-revisionid"]
+del get_versions, versions
+
 from .dem import *
 from glob import glob as _glob
 from . import model_liggghts, engine_liggghts
-from ._version import __version__, __author__, __email__
 
 
 class _findEngines:
