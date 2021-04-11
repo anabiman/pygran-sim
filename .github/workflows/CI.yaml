@@ -37,10 +37,9 @@ jobs:
         df -h
         ulimit -a
 
-
-    -name: Install ext libraries 
-     shell: bash
-     run: |
+    - name: Install ext libraries 
+      shell: bash
+      run: |
         sudo apt-get install libopenmpi-dev openmpi-common openmpi-bin vtk6 libvtk6-dev
 
     - name: Set up Python ${{ matrix.python-version }}
