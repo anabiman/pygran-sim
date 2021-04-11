@@ -1,5 +1,5 @@
-import PyGranSim as simulation
-from PyGranParams import organic
+import pygran_sim as simulation
+from pygran_params import organic
 
 
 def test_run():

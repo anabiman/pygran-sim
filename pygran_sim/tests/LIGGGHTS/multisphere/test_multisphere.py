@@ -3,8 +3,8 @@ Created on March 3, 2018
 Author: Andrew Abi-Mansour
 """
 
-import PyGranSim as simulation
-from PyGranParams import organic
+import pygran_sim as simulation
+from pygran_params import organic
 
 
 def test_run():
