@@ -185,7 +185,7 @@ class DEM:
             level=logging.DEBUG,
         )
 
-        self.dem = module.DEMPy(self.split, self.library, **self.pargs)
+        self.dem = module.DEMPy(split=self.split, library=self.library, **self.pargs)
 
         if not self.rank:
 
@@ -366,7 +366,7 @@ class DEM:
 
         for i in range(self.nSim):
             if self.rank < self.pProcs * (i + 1):
-                if type(args[0]) is tuple:
+                if isinstance(args[0], tuple):
                     self.dem.createProperty(name, *args[i])
                 else:
                     self.dem.createProperty(name, *args)
