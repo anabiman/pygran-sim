@@ -2,6 +2,7 @@ import pygran_sim as simulation
 from pygran_params import organic
 import os
 
+
 def test_run():
 
     # Create a dictionary of physical parameters
@@ -20,7 +21,14 @@ def test_run():
         # Import surface mesh
         "mesh": {
             "wallZ": {
-                "file": os.path.join("pygran_sim", "tests", "LIGGGHTS", "compaction", "mesh", "square.stl"),
+                "file": os.path.join(
+                    "pygran_sim",
+                    "tests",
+                    "LIGGGHTS",
+                    "compaction",
+                    "mesh",
+                    "square.stl",
+                ),
                 "mtype": "mesh/surface/stress",
                 "material": organic,
                 "args": {"scale": 1e-3, "move": (0, 0, 1e-3)},

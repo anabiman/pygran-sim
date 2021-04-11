@@ -463,16 +463,17 @@ class DEM:
 
                 # Create or update links to the particle/mesh files (easily accessible to the user)
                 if "pfile" in self.lmp.pargs["traj"]:
-                    self.pfile = os.path.join(self.lmp.pargs["output"],
+                    self.pfile = os.path.join(
+                        self.lmp.pargs["output"],
                         "traj",
-                        self.lmp.pargs["traj"]["pfile"]
+                        self.lmp.pargs["traj"]["pfile"],
                     )
 
                 if "mfile" in self.lmp.pargs["traj"]:
                     self.mfile = os.path.join(
                         self.lmp.pargs["output"],
                         "traj",
-                        self.lmp.pargs["traj"]["mfile"]
+                        self.lmp.pargs["traj"]["mfile"],
                     )
 
                 return dumpID

@@ -7,6 +7,7 @@ import pygran_sim as simulation
 from pygran_params import organic
 import os
 
+
 def test_run():
 
     # Create a dictionary of physical parameters
@@ -37,7 +38,14 @@ def test_run():
         # Define mesh for rotating drum (trumbler)
         "mesh": {
             "tumbler": {
-                "file": os.path.join("pygran_sim", "tests", "LIGGGHTS", "multisphere", "mesh", "tumbler.stl"),
+                "file": os.path.join(
+                    "pygran_sim",
+                    "tests",
+                    "LIGGGHTS",
+                    "multisphere",
+                    "mesh",
+                    "tumbler.stl",
+                ),
                 "mtype": "mesh/surface/stress",
                 "material": organic,
                 "args": {"scale": 1e-3},
