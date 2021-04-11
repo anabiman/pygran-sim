@@ -29,16 +29,7 @@ import subprocess
 import glob, shutil, os, sys
 from distutils.command.install import install
 from distutils.command.clean import clean
-
-# Extract metadata from ._version
-with open(os.path.join("PyGranSim", "_version.py"), "r") as fp:
-    for line in fp.readlines():
-        if "__version__" in line:
-            __version__ = line.split("=")[-1].strip().strip("''")
-        elif "__email__" in line:
-            __email__ = line.split("=")[-1].strip().strip("''")
-        elif "__author__" in line:
-            __author__ = line.split("=")[-1].strip().strip("''")
+import versioneer
 
 
 class Track(install):
@@ -123,25 +114,30 @@ class Clean(clean):
         super().run()
 
 
+cmd_class = versioneer.get_cmdclass()
+cmd_class.update({"build_liggghts": LIGGGHTS, "clean": Clean})
+
 setup(
-    name="PyGranSim",
-    version=__version__,
-    author=__author__,
-    author_email=__email__,
-    description=("A PyGran submodule for running DEM simulation"),
+    name="pygran_sim",
+    version=versioneer.get_version(),
+    author="Andrew Abi-Mansour",
+    author_email="support@pygran.org",
+    description=("A PyGran package for running DEM simulation"),
     license="GNU v2",
     keywords="Discrete Element Method, Granular Materials",
     url="https://github.com/Andrew-AbiMansour/PyGranSim",
     packages=find_packages(),
     include_package_data=True,
     install_requires=["numpy", "scipy"],
-    extras_require={"extra": ["mpi4py", "vtk", "Pillow", "pytest", "pytest-cov"]},
+    extras_require={
+        "extras": ["mpi4py", "vtk", "Pillow"],
+        "tests": ["pytest", "pytest-cov"],
+    },
     long_description="A PyGran submodule for running DEM simulation. See http://www.pygran.org for more info on PyGran.",
     classifiers=[
         "Development Status :: 4 - Beta",
         "Topic :: Utilities",
         "License :: OSI Approved :: GNU General Public License v2 (GPLv2)",
-        "Programming Language :: Python :: 2.7",
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.4",
         "Programming Language :: Python :: 3.5",
@@ -149,6 +145,6 @@ setup(
         "Programming Language :: Python :: 3.7",
         "Operating System :: POSIX :: Linux",
     ],
-    cmdclass={"build_liggghts": LIGGGHTS, "clean": Clean},
+    cmdclass=cmd_class,
     zip_safe=False,
 )
