@@ -49,7 +49,6 @@ import numpy as np
 import os
 import glob
 import sys
-from importlib import import_module
 from .tools import find, dictToTuple
 import itertools
 import logging
@@ -556,7 +555,7 @@ class DEMPy(object):
                 else:
                     args = ()
 
-                if ss["style"] is "sphere":
+                if ss["style"] == "sphere":
                     radius = ss["radius"]
 
                     if not isinstance(radius, tuple):
@@ -621,7 +620,7 @@ class DEMPy(object):
                         + (" {}" * len(args)).format(*args)
                     )
 
-                if ss["style"] is "sphere":
+                if ss["style"] == "sphere":
                     if radius[0] == "constant":
                         self.lmp.command(
                             "fix {} ".format(pddName)
@@ -693,17 +692,14 @@ class DEMPy(object):
             )
             sys.exit()
 
-        if "region" in args:
-            region = args["region"]
-        else:
+        if "region" not in args:
             # Default region is sim box
             if "cylinder" in self.pargs:
                 region = ("cylinder", self.pargs["cylinder"])
             else:
                 region = ("block", self.pargs["box"])
 
-            region = tuple([region[0]] + [i for i in region[1:][0]])
-            args["region"] = region
+            args["region"] = tuple([region[0]] + [i for i in region[1:][0]])
 
         # I think this is for creating tuples of lists, corresponding to many regions
         # This is prolly for inserting many species at the same time in different regions
@@ -758,7 +754,7 @@ class DEMPy(object):
                 if not mech:
                     mech = "nparticles"
 
-                if mech is "nparticles":
+                if mech == "nparticles":
                     value += self.lmp.get_natoms()
 
                 randPnum = RandPrime().gen()
@@ -779,7 +775,7 @@ class DEMPy(object):
                 if not mech:
                     mech = "particles_in_region"
 
-                if mech is "particles_in_region":
+                if mech == "particles_in_region":
                     value += self.lmp.get_natoms()
 
                 self.lmp.command(
@@ -801,7 +797,7 @@ class DEMPy(object):
                     )
                 )
 
-                if mech is "nparticles":
+                if mech == "nparticles":
                     value += self.lmp.get_natoms()
 
                 value += self.lmp.get_natoms()
