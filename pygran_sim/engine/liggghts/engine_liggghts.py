@@ -45,19 +45,19 @@ See the README file in the top-level LAMMPS directory.
 
 import sys, traceback
 import ctypes
-import numpy as np
+import numpy
 import os
 import glob
 import sys
-from .tools import find, dictToTuple
+from pygran_sim.tools import find, dictToTuple
 import itertools
 import logging
+from ..api import EngineAPI
 
 try:
     from mpi4py import MPI
 except Exception:
-    MPI = None
-
+    raise RuntimeError("mpi4py and an MPI library are needed to run engine_liggghts.")
 
 class RandPrime(object):
     """
@@ -69,7 +69,7 @@ class RandPrime(object):
 
     def isPrime(self, n):
         return n > 1 and all(
-            n % i for i in itertools.islice(itertools.count(2), int(np.sqrt(n) - 1))
+            n % i for i in itertools.islice(itertools.count(2), int(numpy.sqrt(n) - 1))
         )
 
     def gen(self):
@@ -77,43 +77,96 @@ class RandPrime(object):
         low, high = 1 + 1e4, 1e8
 
         while True:
-            randn = np.random.randint(low, high)
+            randn = numpy.random.randint(low, high)
             if self.isPrime(randn) and randn not in RandPrime.hist:
                 break
 
         RandPrime.hist.append(randn)
         return randn
 
+class Liggghts(EngineAPI):
+    """A class that implements a python interface for DEM computations
 
-class Liggghts:
-    """
-    A class that provides API-like access to LIGGGHTS-PUBLIC
-
-    :param library: full path to the LIGGGHTS-PUBLIC module (.so file)
-    :type library: str
+    :param units: unit system (default 'si'). See `ref <https://www.cfdem.com/media/DEM/docu/units.html>`_.
+    :type units: str
 
     :param style: particle type ('spherical' by default)
     :type style: str
 
-    :param dim: simulation box dimension (default 3)
+    :param split: MPI communicator
+    :type comm: MPI Intracomm
+
+    :param species: defines the number and properties of all species
+    :type species: tuple
+
+    :param output: output dir name
+    :type output: str
+
+    :param print: specify which variables to print to stdout: (freq, 'varName1', 'varName2', ...). Default is (10**4, 'time', 'dt', 'atoms').
+    :type print: tuple
+
+    :param library: full path to the LIGGGHTS-PUBLIC module (.so file)
+    :type library: str
+
+    :param dim: simulation box dimension (2 or 3)
     :type dim: int
 
-    :param units: unit system (default 'si'). See `here <https://www.cfdem.com/media/DEM/docu/units.html>`_ for available options.
-    :type units: str
+    :param restart: specify restart options via (freq=int, dirname=str, filename=str, restart=bool, frame=int)
+    :type restart: tuple
+
+    :param boundary: setup boundary conditions (see `ref <https://www.cfdem.com/media/DEM/docu/boundary.html>`_), e.g. ('p', 'p', 'p') -> periodic boundaries in 3D.
+    :type boundary: tuple
+
+    :param dim: simulation box dimension (default 3)
+    :type dim: int
     """
 
-    # create instance of LIGGGHTS
     def __init__(
         self,
+        *,
+        split,
         library=None,
         style="spherical",
-        dim=3,
-        units="si",
         path=None,
         cmdargs=[],
-        comm=None,
         ptr=None,
+        **pargs
     ):
+        """ Initialize some settings and specifications """
+
+        if "print" not in pargs:
+            pargs["print"] = (10 ** 4, "time", "dt", "atoms")
+
+        pargs["units"] = pargs.get("units", "si")
+        pargs["dim"] = pargs.get("dim", 3)
+        comm = pargs.get("comm", MPI.COMM_WORLD)
+
+        self.rank = split.Get_rank()
+        self.split = split
+        self.pargs = pargs
+        self.monitorList = []
+        self.vars = {}
+        self.path = os.getcwd()
+        self.nSS = len(self.pargs["species"])
+        self.output = self.pargs["output"]
+        self._configdir = os.path.join(os.path.expanduser("~"), ".config", "PyGran")
+        self._monitor = []  # a list of tuples of (varname, filename) to monitor
+
+        if "__version__" in pargs:
+            self.__version__ = self.pargs["__version__"]
+
+        if not self.rank:
+            logging.info("Working in {}".format(self.path))
+            logging.info("Creating i/o directories")
+
+            if not os.path.exists(self.pargs["traj"]["dir"]):
+                os.makedirs(self.pargs["traj"]["dir"])
+
+            if self.pargs["restart"]:
+                if not os.path.exists(self.pargs["restart"][1]):
+                    os.makedirs(self.pargs["restart"][1])
+
+            logging.info("Instantiating LIGGGHTS object")
 
         if not MPI:
             raise ModuleNotFoundError(
@@ -136,7 +189,7 @@ class Liggghts:
 
         try:
             self.lib = ctypes.CDLL(library, ctypes.RTLD_GLOBAL)
-        except:
+        except Exception:
             etype, value, tb = sys.exc_info()
             traceback.print_exception(etype, value, tb)
             raise RuntimeError("Could not load LIGGGHTS dynamic library")
@@ -212,32 +265,77 @@ class Liggghts:
                 ctypes.pythonapi.PyCObject_AsVoidPtr.argtypes = [ctypes.py_object]
                 self.lmp = ctypes.c_void_p(ctypes.pythonapi.PyCObject_AsVoidPtr(ptr))
 
-    def close(self):
-        if hasattr(self, "lmp") and self.opened:
-            self.lib.lammps_close(self.lmp)
-            self.lmp = None
+        if not self.rank:
+            logging.info("Setting up problem dimensions and boundaries")
 
-    def file(self, file):
-        """Function for loading LIGGGHTS input file scripts.
+        self.command("units {}".format(self.pargs["units"]))
 
-        :param file: input filename
-        :type file: str
+        if hasattr(self, "__version__"):
+            if self.__version__ >= 3.6:
+                self.command("hard_particles yes")
+        else:
+            # Get version from version_liggghts.txt. TODO: find a faster way to do this
+            # by reading version from stdout, and move this to tools!
+            try:
+                version_txt = find("version_liggghts.txt", "/")
+                self.__liggghts__ = version_txt.split("version_liggghts.txt")[0]
 
-        .. note:: For python 3, "file" is encoded as an 8 character utf
+                with open(version_txt, "r+") as fp:
+                    major, minor, _ = fp.readline().rstrip().split(".")
+                    self.__version__ = float(major + "." + minor)
+            except Exception:
+                if not self.rank:
+                    print("Could not find LIGGGHTS version. Proceeding ... ")
+                self.__version__ = "unknown"
+                self.__liggghts__ = "n/a"
 
-        """
-        self.lib.lammps_file(self.lmp, file.encode("utf-8"))
+            # Write version + src dir to config file if it exists
+            if not self.rank:
+                liggghts_ini = os.path.join(self._configdir, "liggghts.ini")
+                if os.path.isfile(liggghts_ini):
+                    with open(liggghts_ini, "a+") as fp:
+                        fp.write("\nsrc={}".format(self.__liggghts__))
+                        fp.write("\nversion={}".format(self.__version__))
+            if self.__version__ >= 3.6:
+                self.command("hard_particles yes")
 
-    def command(self, cmd):
-        """Function for executing a LIGGGHTS command
+        self.command("dimension {}".format(self.pargs["dim"]))
+        self.command("atom_style {}".format(style))
+        self.command(
+            "atom_modify map array"
+        )  # array is faster than hash in looking up atomic IDs, but the former takes more memory
+        self.command(
+            "boundary " + ("{} " * len(pargs["boundary"])).format(*pargs["boundary"])
+        )
+        self.command(
+            "newton off"
+        )  # turn off newton's 3rd law ~ should lead to better scalability
+        self.command(
+            "communicate single vel yes"
+        )  # have no idea what this does, but it's imp for ghost atoms
+        self.command("processors * * *")  # let LIGGGHTS handle DD
 
-        :param cmd: input LIGGGHTS command
-        :type cmd: str
+    # scatter vector of atom properties across procs, ordered by atom ID
+    # assume vector is of correct type and length, as created by gather_atoms()
+    def scatter_atoms(self, name, type, count, data):
+        return self.lib.lammps_scatter_atoms(self.lmp, name, type, count, data)
 
-        .. note:: For python 3, "cmd" is encoded as an 8 character utf
-
-        """
-        self.lib.lammps_command(self.lmp, cmd.encode("utf-8"))
+    # return total number of atoms in system
+    def get_natoms(self):
+        return self.lib.lammps_get_natoms(self.lmp)
+    
+    # return vector of atom properties gathered across procs, ordered by atom ID
+    def gather_atoms(self, name, type, count):
+        natoms = self.lib.lammps_get_natoms(self.lmp)
+        if type == 0:
+            data = ((count * natoms) * ctypes.c_int)()
+            self.lib.lammps_gather_atoms(self.lmp, name, type, count, data)
+        elif type == 1:
+            data = ((count * natoms) * ctypes.c_double)()
+            self.lib.lammps_gather_atoms(self.lmp, name, type, count, data)
+        else:
+            return None
+        return data
 
     def extract_global(self, name, type):
         if type == 0:
@@ -248,24 +346,6 @@ class Liggghts:
             return None
         ptr = self.lib.lammps_extract_global(self.lmp, name)
         return ptr[0]
-
-    def extract_atom(self, name, type):
-        if type == 0:
-            self.lib.lammps_extract_atom.restype = ctypes.POINTER(ctypes.c_int)
-        elif type == 1:
-            self.lib.lammps_extract_atom.restype = ctypes.POINTER(
-                ctypes.POINTER(ctypes.c_int)
-            )
-        elif type == 2:
-            self.lib.lammps_extract_atom.restype = ctypes.POINTER(ctypes.c_double)
-        elif type == 3:
-            self.lib.lammps_extract_atom.restype = ctypes.POINTER(
-                ctypes.POINTER(ctypes.c_double)
-            )
-        else:
-            return None
-        ptr = self.lib.lammps_extract_atom(self.lmp, name)
-        return ptr
 
     def extract_compute(self, id, style, type):
         if type == 0:
@@ -286,10 +366,11 @@ class Liggghts:
             return ptr
         return None
 
-    # in case of global datum, free memory for 1 double via lammps_free()
-    # double was allocated by library interface function
-
     def extract_fix(self, id, style, type, i=0, j=0):
+        """
+        In case of global datum, free memory for 1 double via lammps_free()
+        double was allocated by library interface function
+        """
         if style == 0:
             self.lib.lammps_extract_fix.restype = ctypes.POINTER(ctypes.c_double)
             ptr = self.lib.lammps_extract_fix(self.lmp, id, style, type, i, j)
@@ -309,6 +390,26 @@ class Liggghts:
             return ptr
         else:
             return None
+
+    def createDomain(self):
+        """ Define the domain of the simulation """
+        if not self.rank:
+            logging.info("Creating domain")
+
+        if "box" in self.pargs:
+            self.command(
+                "region domain block "
+                + ("{} " * len(self.pargs["box"])).format(*self.pargs["box"])
+                + " units box volume_limit 1e-20"
+            )
+        elif "cylinder" in self.pargs:
+            self.command(
+                "region domain cylinder "
+                + ("{} " * len(self.pargs["cylinder"])).format(*self.pargs["cylinder"])
+                + " units box volume_limit 1e-20"
+            )
+
+        self.command("create_box {} domain".format(self.pargs["nSS"]))
 
     # free memory for 1 double or 1 vector of doubles via lammps_free()
     # for vector, must copy nlocal returned values to local c_double vector
@@ -334,199 +435,32 @@ class Liggghts:
             return result
         return None
 
-    # set variable value
-    # value is converted to string
-    # returns 0 for success, -1 if failed
-
-    def set_variable(self, name, value):
-        return self.lib.lammps_set_variable(self.lmp, name, str(value))
-
-    # return total number of atoms in system
-
-    def get_natoms(self):
-        return self.lib.lammps_get_natoms(self.lmp)
-
-    # return vector of atom properties gathered across procs, ordered by atom ID
-
-    def gather_atoms(self, name, type, count):
-        natoms = self.lib.lammps_get_natoms(self.lmp)
+    def extract_atom(self, name, type):
         if type == 0:
-            data = ((count * natoms) * ctypes.c_int)()
-            self.lib.lammps_gather_atoms(self.lmp, name, type, count, data)
+            self.lib.lammps_extract_atom.restype = ctypes.POINTER(ctypes.c_int)
         elif type == 1:
-            data = ((count * natoms) * ctypes.c_double)()
-            self.lib.lammps_gather_atoms(self.lmp, name, type, count, data)
+            self.lib.lammps_extract_atom.restype = ctypes.POINTER(
+                ctypes.POINTER(ctypes.c_int)
+            )
+        elif type == 2:
+            self.lib.lammps_extract_atom.restype = ctypes.POINTER(ctypes.c_double)
+        elif type == 3:
+            self.lib.lammps_extract_atom.restype = ctypes.POINTER(
+                ctypes.POINTER(ctypes.c_double)
+            )
         else:
             return None
-        return data
+        ptr = self.lib.lammps_extract_atom(self.lmp, name)
+        return ptr
 
-    # scatter vector of atom properties across procs, ordered by atom ID
-    # assume vector is of correct type and length, as created by gather_atoms()
+    def set_variable(self, name, value):
+        """
+        set variable value
+        value is converted to string
+        returns 0 for success, -1 if failed
+        """
+        return self.lib.lammps_set_variable(self.lmp, name, str(value))
 
-    def scatter_atoms(self, name, type, count, data):
-        self.lib.lammps_scatter_atoms(self.lmp, name, type, count, data)
-
-
-class DEMPy(object):
-    """A class that implements a python interface for DEM computations
-
-    :param units: unit system (default 'si'). See `ref <https://www.cfdem.com/media/DEM/docu/units.html>`_.
-    :type units: str
-
-    :param style: particle type ('spherical' by default)
-    :type style: str
-
-    :param split: MPI communicator
-    :type comm: MPI Intracomm
-
-    :param species: defines the number and properties of all species
-    :type species: tuple
-
-    :param output: output dir name
-    :type output: str
-
-    :param print: specify which variables to print to stdout: (freq, 'varName1', 'varName2', ...). Default is (10**4, 'time', 'dt', 'atoms').
-    :type print: tuple
-
-    :param library: full path to the LIGGGHTS-PUBLIC module (.so file)
-    :type library: str
-
-    :param dim: simulation box dimension (2 or 3)
-    :type dim: int
-
-    :param restart: specify restart options via (freq=int, dirname=str, filename=str, restart=bool, frame=int)
-    :type restart: tuple
-
-    :param boundary: setup boundary conditions (see `ref <https://www.cfdem.com/media/DEM/docu/boundary.html>`_), e.g. ('p', 'p', 'p') -> periodic boundaries in 3D.
-    :type boundary: tuple
-
-    .. todo:: This class should be generic (not specific to liggghts), must handle all I/O, garbage collection, etc. and then moved to DEM.py
-    """
-
-    def __init__(self, split, library, style, **pargs):
-        """ Initialize some settings and specifications """
-
-        if "print" not in pargs:
-            pargs["print"] = (10 ** 4, "time", "dt", "atoms")
-
-        self.rank = split.Get_rank()
-        self.split = split
-        self.pargs = pargs
-        self.monitorList = []
-        self.vars = {}
-        self.path = os.getcwd()
-        self.nSS = len(self.pargs["species"])
-        self.output = self.pargs["output"]
-        self._configdir = os.path.join(os.path.expanduser("~"), ".config", "PyGran")
-        self._monitor = []  # a list of tuples of (varname, filename) to monitor
-
-        if "__version__" in pargs:
-            self.__version__ = self.pargs["__version__"]
-
-        if not self.rank:
-            logging.info("Working in {}".format(self.path))
-            logging.info("Creating i/o directories")
-
-            if not os.path.exists(self.pargs["traj"]["dir"]):
-                os.makedirs(self.pargs["traj"]["dir"])
-
-            if self.pargs["restart"]:
-                if not os.path.exists(self.pargs["restart"][1]):
-                    os.makedirs(self.pargs["restart"][1])
-
-            logging.info("Instantiating LIGGGHTS object")
-
-        self.lmp = Liggghts(
-            comm=self.split, library=library.strip(), cmdargs=["-log", "liggghts.log"]
-        )
-
-        if not self.rank:
-            logging.info("Setting up problem dimensions and boundaries")
-
-        self.lmp.command("units {}".format(self.pargs["units"]))
-
-        if hasattr(self, "__version__"):
-            if self.__version__ >= 3.6:
-                self.lmp.command("hard_particles yes")
-        else:
-            # Get version from version_liggghts.txt. TODO: find a faster way to do this
-            # by reading version from stdout, and move this to tools!
-            try:
-                version_txt = find("version_liggghts.txt", "/")
-                self.__liggghts__ = version_txt.split("version_liggghts.txt")[0]
-
-                with open(version_txt, "r+") as fp:
-                    major, minor, _ = fp.readline().rstrip().split(".")
-                    self.__version__ = float(major + "." + minor)
-            except Exception:
-                if not self.rank:
-                    print("Could not find LIGGGHTS version. Proceeding ... ")
-                self.__version__ = "unknown"
-                self.__liggghts__ = "n/a"
-
-            # Write version + src dir to config file if it exists
-            if not self.rank:
-                liggghts_ini = os.path.join(self._configdir, "liggghts.ini")
-                if os.path.isfile(liggghts_ini):
-                    with open(liggghts_ini, "a+") as fp:
-                        fp.write("\nsrc={}".format(self.__liggghts__))
-                        fp.write("\nversion={}".format(self.__version__))
-            if self.__version__ >= 3.6:
-                self.lmp.command("hard_particles yes")
-
-        self.lmp.command("dimension {}".format(self.pargs["dim"]))
-        self.lmp.command("atom_style {}".format(style))
-        self.lmp.command(
-            "atom_modify map array"
-        )  # array is faster than hash in looking up atomic IDs, but the former takes more memory
-        self.lmp.command(
-            "boundary " + ("{} " * len(pargs["boundary"])).format(*pargs["boundary"])
-        )
-        self.lmp.command(
-            "newton off"
-        )  # turn off newton's 3rd law ~ should lead to better scalability
-        self.lmp.command(
-            "communicate single vel yes"
-        )  # have no idea what this does, but it's imp for ghost atoms
-        self.lmp.command("processors * * *")  # let LIGGGHTS handle DD
-
-    def get_natoms(self):
-        return self.lmp.get_natoms()
-
-    def scatter_atoms(self, name, type, count, data):
-        return self.lmp.scatter_atoms(name, type, count, data)
-
-    def gather_atoms(self, name, type, count):
-        return self.lmp.gather_atoms(name, type, count)
-
-    def extract_global(self, name, type):
-        return self.lmp.extract_global(name, type)
-
-    def extract_compute(self, id, style, type):
-        return self.lmp.extract_compute(id, style, type)
-
-    def extract_fix(self, id, style, type, i=0, j=0):
-        return self.lmp.extract_fix(id, style, type, i, j)
-
-    def createDomain(self):
-        """ Define the domain of the simulation """
-        if not self.rank:
-            logging.info("Creating domain")
-
-        if "box" in self.pargs:
-            self.lmp.command(
-                "region domain block "
-                + ("{} " * len(self.pargs["box"])).format(*self.pargs["box"])
-                + " units box volume_limit 1e-20"
-            )
-        elif "cylinder" in self.pargs:
-            self.lmp.command(
-                "region domain cylinder "
-                + ("{} " * len(self.pargs["cylinder"])).format(*self.pargs["cylinder"])
-                + " units box volume_limit 1e-20"
-            )
-
-        self.lmp.command("create_box {} domain".format(self.pargs["nSS"]))
 
     def setupParticles(self):
         """ Setup particle for insertion if requested by the user """
@@ -538,8 +472,8 @@ class DEMPy(object):
                 if not self.rank:
                     logging.info("Setting up particles for group{id}".format(**ss))
 
-                randName = np.random.randint(10 ** 5, 10 ** 8)
-                pddName = "pdd" + "{}".format(np.random.randint(10 ** 5, 10 ** 8))
+                randName = numpy.random.randint(10 ** 5, 10 ** 8)
+                pddName = "pdd" + "{}".format(numpy.random.randint(10 ** 5, 10 ** 8))
 
                 if "vol_lim" not in ss:
                     ss["vol_lim"] = 1e-20
@@ -548,7 +482,7 @@ class DEMPy(object):
                     ss["psd_style"] = "numberbased"
 
                 id = ss["id"] - 1
-                self.lmp.command("group group{} type {}".format(id, ss["id"]))
+                self.command("group group{} type {}".format(id, ss["id"]))
 
                 if "args" in ss:
                     args = ss["args"]
@@ -562,7 +496,7 @@ class DEMPy(object):
                         radius = ("constant", radius)
 
                     if radius[0] == "constant":
-                        self.lmp.command(
+                        self.command(
                             "fix {} ".format(randName)
                             + "group{}".format(id)
                             + " particletemplate/{style} 15485867 volume_limit {vol_lim} atom_type {id} density constant {density} radius".format(
@@ -583,17 +517,19 @@ class DEMPy(object):
                                 radius[1] * radius[2],
                                 radius[3],
                             )
-                            radii = np.random.normal(loc=mean, scale=std, size=npts)
-                            weights = np.ones(len(radii)) / len(radii)
+                            radii = numpy.random.normal(loc=mean, scale=std, size=npts)
+                            weights = numpy.ones(len(radii)) / len(radii)
 
                         if radius[0] == "lognormal":
                             mean, std, npts = (
-                                np.log(radius[1]),
-                                np.abs(radius[2] * np.log(radius[1])),
+                                numpy.log(radius[1]),
+                                numpy.abs(radius[2] * numpy.log(radius[1])),
                                 radius[3],
                             )
-                            radii = np.random.lognormal(mean=mean, sigma=std, size=npts)
-                            weights = np.ones(len(radii)) / len(radii)
+                            radii = numpy.random.lognormal(
+                                mean=mean, sigma=std, size=npts
+                            )
+                            weights = numpy.ones(len(radii)) / len(radii)
 
                         RP = RandPrime()
 
@@ -601,7 +537,7 @@ class DEMPy(object):
                             rad = ("constant", rad)
                             randNames.append(randName + count)
                             ss["_randn"] = RP.gen()
-                            self.lmp.command(
+                            self.command(
                                 "fix {} ".format(randNames[-1])
                                 + "group{}".format(id)
                                 + " particletemplate/{style} {_randn} volume_limit {vol_lim} atom_type {id} density constant {density} radius".format(
@@ -611,7 +547,7 @@ class DEMPy(object):
                                 + (" {}" * len(args)).format(*args)
                             )
                 else:
-                    self.lmp.command(
+                    self.command(
                         "fix {} ".format(randName)
                         + "group{}".format(id)
                         + " particletemplate/{style} 15485867 volume_limit {vol_lim} atom_type {id} density constant {density}".format(
@@ -622,7 +558,7 @@ class DEMPy(object):
 
                 if ss["style"] == "sphere":
                     if radius[0] == "constant":
-                        self.lmp.command(
+                        self.command(
                             "fix {} ".format(pddName)
                             + "group{}".format(id)
                             + " particledistribution/discrete/{psd_style} 67867967 1".format(
@@ -638,7 +574,7 @@ class DEMPy(object):
                             [i for items in randNames_weights for i in items]
                         )
 
-                        self.lmp.command(
+                        self.command(
                             "fix {} ".format(pddName)
                             + "group{}".format(id)
                             + " particledistribution/discrete/{psd_style} 15485867 ".format(
@@ -650,7 +586,7 @@ class DEMPy(object):
                             )
                         )
                 else:
-                    self.lmp.command(
+                    self.command(
                         "fix {} ".format(pddName)
                         + "group{}".format(id)
                         + " particledistribution/discrete/{psd_style} 67867967 1".format(
@@ -726,10 +662,10 @@ class DEMPy(object):
                 logging.info("Inserting particles for species {}".format(id + 1))
 
             seed = RandPrime().gen()
-            name = np.random.randint(0, 1e8)
+            name = numpy.random.randint(0, 1e8)
 
-            randName = "insert" + "{}".format(np.random.randint(0, 10 ** 6))
-            self.lmp.command(
+            randName = "insert" + "{}".format(numpy.random.randint(0, 10 ** 6))
+            self.command(
                 "region {} ".format(name)
                 + ("{} " * len(region)).format(*region)
                 + "units box volume_limit 1e-20"
@@ -755,11 +691,11 @@ class DEMPy(object):
                     mech = "nparticles"
 
                 if mech == "nparticles":
-                    value += self.lmp.get_natoms()
+                    value += self.get_natoms()
 
                 randPnum = RandPrime().gen()
 
-                self.lmp.command(
+                self.command(
                     "fix {} group{} insert/rate/region seed {} distributiontemplate {} {} {}".format(
                         randName, id, randPnum, self.pddName[id], mech, value
                     )
@@ -776,9 +712,9 @@ class DEMPy(object):
                     mech = "particles_in_region"
 
                 if mech == "particles_in_region":
-                    value += self.lmp.get_natoms()
+                    value += self.get_natoms()
 
-                self.lmp.command(
+                self.command(
                     "fix {} group{} insert/pack seed {} distributiontemplate {}".format(
                         randName, id, seed, self.pddName[id]
                     )
@@ -798,13 +734,13 @@ class DEMPy(object):
                 )
 
                 if mech == "nparticles":
-                    value += self.lmp.get_natoms()
+                    value += self.get_natoms()
 
-                value += self.lmp.get_natoms()
+                value += self.get_natoms()
 
                 randPnum = RandPrime().gen()
 
-                self.lmp.command(
+                self.command(
                     "fix {} group{} insert/rate/region seed {} distributiontemplate {} {} {}".format(
                         randName, id, randPnum, self.pddName[id], mech, value
                     )
@@ -868,7 +804,7 @@ class DEMPy(object):
         # See if any variables were set to be monitered by the user
         if self._monitor:
             for vname, fname in self._monitor:
-                getattr(self, vname).append(np.loadtxt(fname))
+                getattr(self, vname).append(numpy.loadtxt(fname))
 
         return name
 
@@ -879,11 +815,11 @@ class DEMPy(object):
         @args: keywords specific to LIGGGHTS's move/mesh command: https://www.cfdem.com/media/DEM/docu/fix_move_mesh.html
         """
 
-        randName = "moveMesh" + str(np.random.randint(10 ** 5, 10 ** 8))
+        randName = "moveMesh" + str(numpy.random.randint(10 ** 5, 10 ** 8))
 
         args = dictToTuple(**args)
 
-        self.lmp.command(
+        self.command(
             "fix {} all move/mesh mesh {} ".format(randName, name)
             + ("{} " * len(args)).format(*args)
         )
@@ -946,7 +882,7 @@ class DEMPy(object):
         if not self.rank:
             logging.info("Importing mesh from {}".format(file))
 
-        self.lmp.command(
+        self.command(
             "fix {} all {} file {} type {} ".format(name, mtype, file, material)
             + ("{} " * len(args)).format(*args)
         )
@@ -967,7 +903,7 @@ class DEMPy(object):
         model = []
         modelExtra = []
 
-        name = np.random.randint(0, 1e8)
+        name = numpy.random.randint(0, 1e8)
 
         for item in self.pargs["model-args"]:
             if item.startswith("model"):
@@ -1003,7 +939,7 @@ class DEMPy(object):
             )
             nMeshes = len(meshName)
 
-            self.lmp.command(
+            self.command(
                 "fix walls all wall/{} ".format(gran)
                 + ("{} " * len(model)).format(*model)
                 + ("{} " * len(modelExtra)).format(*modelExtra)
@@ -1011,7 +947,7 @@ class DEMPy(object):
                 + (" {} " * nMeshes).format(*meshName)
             )
         elif wtype == "primitive":
-            self.lmp.command(
+            self.command(
                 "fix {} all wall/{} ".format(name, gran)
                 + ("{} " * len(model)).format(*model)
                 + ("{} " * len(modelExtra)).format(*modelExtra)
@@ -1032,12 +968,12 @@ class DEMPy(object):
             if name in self.pargs["mesh"]:
                 # must delete all meshes / dumps in order to re-import remaining meshes
                 for dump in self.pargs["traj"]["dump_mname"]:
-                    self.lmp.command("undump {}".format(dump))
+                    self.command("undump {}".format(dump))
 
-                self.lmp.command("unfix walls")
+                self.command("unfix walls")
 
                 for i, mesh in enumerate(self.pargs["mesh"].keys()):
-                    self.lmp.command("unfix {}".format(mesh))
+                    self.command("unfix {}".format(mesh))
 
                 if "mfile" in self.pargs["traj"]:
                     if isinstance(self.pargs["traj"]["mfile"], list):
@@ -1062,7 +998,7 @@ class DEMPy(object):
                 return 0
 
         # Otherwise, we are just unfixing a non-mesh fix
-        self.lmp.command("unfix {}".format(name))
+        self.command("unfix {}".format(name))
 
     def createGroup(self, *group):
         """Create groups of atoms. If group is empty, groups{i} are created for every i species."""
@@ -1071,9 +1007,9 @@ class DEMPy(object):
 
         if not len(group):
             for idSS in self.pargs["idSS"]:
-                self.lmp.command("group group{} type {}".format(idSS, idSS))
+                self.command("group group{} type {}".format(idSS, idSS))
         else:
-            self.lmp.command("group " + ("{} " * len(group)).format(*group))
+            self.command("group " + ("{} " * len(group)).format(*group))
 
     def createParticles(self, type, style, *args):
         """
@@ -1086,13 +1022,13 @@ class DEMPy(object):
                 + (" {}" * len(args)).format(*args)
             )
 
-        # my code: self.lmp.command('create_atoms {} {}'.format(type, style) +  (' {}' * len(args)).format(*args))
+        # my code: self.command('create_atoms {} {}'.format(type, style) +  (' {}' * len(args)).format(*args))
         # new code below: ~ should be the same. Double check this.
         self.lmp.createParticles(type, style, *args)
 
     def set(self, *args):
         """ Set group/atom attributes """
-        self.lmp.command("set " + (" {}" * len(args)).format(*args))
+        self.command("set " + (" {}" * len(args)).format(*args))
 
     def setupNeighbor(self, **params):
         """
@@ -1119,8 +1055,8 @@ class DEMPy(object):
 
             params["nns_skin"] = radius * 4
 
-        self.lmp.command("neighbor {nns_skin} {nns_type}".format(**params))
-        self.lmp.command(
+        self.command("neighbor {nns_skin} {nns_type}".format(**params))
+        self.command(
             "neigh_modify delay 0 every {nns_freq} check yes".format(**params)
         )
 
@@ -1134,7 +1070,7 @@ class DEMPy(object):
                 + (" {}" * len(args)).format(*args)
             )
 
-        self.lmp.command(
+        self.command(
             "fix {} all property/global".format(name)
             + (" {}" * len(args)).format(*args)
         )
@@ -1148,8 +1084,8 @@ class DEMPy(object):
 
         args = self.pargs["model-args"]
 
-        self.lmp.command("pair_style " + (" {}" * len(args)).format(*args))
-        self.lmp.command("pair_coeff * *")
+        self.command("pair_style " + (" {}" * len(args)).format(*args))
+        self.command("pair_coeff * *")
 
     def velocity(self, *args):
         """
@@ -1160,14 +1096,14 @@ class DEMPy(object):
         :note: See `link <https://www.cfdem.com/media/DEM/docu/velocity.html>`_
                for info on keywords and their associated values.
         """
-        self.lmp.command("velocity" + (" {}" * len(args)).format(*args))
+        self.command("velocity" + (" {}" * len(args)).format(*args))
 
     def setupGravity(self):
         """
         Specify in which direction the gravitational force acts
         """
         if "gravity" in self.pargs:
-            self.lmp.command(
+            self.command(
                 "fix myGravity all gravity {} vector {} {} {}".format(
                     *self.pargs["gravity"]
                 )
@@ -1177,7 +1113,7 @@ class DEMPy(object):
         """"""
 
         if self.pargs["restart"]:
-            self.lmp.command("restart {} {}/{}".format(*self.pargs["restart"][:-1]))
+            self.command("restart {} {}/{}".format(*self.pargs["restart"][:-1]))
         else:
             # create dummy restart tuple to pass below
             self.pargs["restart"] = (None, None, None, False)
@@ -1233,7 +1169,7 @@ class DEMPy(object):
         if not self.integrator:
 
             # check timestep ~ do this only ONCE
-            self.lmp.command("fix ts_check all check/timestep/gran 1000 0.5 0.5")
+            self.command("fix ts_check all check/timestep/gran 1000 0.5 0.5")
 
             # Find which components (types) are spheres, multi-spheres, QS, etc.
             for i, ss in enumerate(self.pargs["species"]):
@@ -1247,13 +1183,13 @@ class DEMPy(object):
                 # self.createGroup(*('spheres type', (' {}' * len(spheres)).format(*spheres)))
 
                 for sphere in spheres:
-                    name = "sphere_" + str(np.random.randint(0, 10 ** 6))
+                    name = "sphere_" + str(numpy.random.randint(0, 10 ** 6))
                     if not itype:
-                        self.lmp.command(
+                        self.command(
                             "fix {} group{} nve/sphere".format(name, int(sphere[0]) - 1)
                         )
                     else:
-                        self.lmp.command(
+                        self.command(
                             "fix {} group{} {}".format(name, int(sphere[0]) - 1, itype)
                         )
                     self.integrator.append(name)
@@ -1275,8 +1211,8 @@ class DEMPy(object):
                         ms = False
 
                 if ms:
-                    name = "multisphere_" + str(np.random.randint(0, 10 ** 6))
-                    self.lmp.command(
+                    name = "multisphere_" + str(numpy.random.randint(0, 10 ** 6))
+                    self.command(
                         "fix {} group{} multisphere".format(name, int(multi[0]) - 1)
                     )
                     self.integrator.append(name)
@@ -1291,12 +1227,12 @@ class DEMPy(object):
             logging.info("Integrating the system for {} steps".format(steps))
 
         for tup in self.monitorList:
-            self.lmp.command("compute {} {} {}".format(*tup))
+            self.command("compute {} {} {}".format(*tup))
 
         if dt is not None:
-            self.lmp.command("timestep {}".format(dt))
+            self.command("timestep {}".format(dt))
 
-        self.lmp.command("run {}".format(steps))
+        self.command("run {}".format(steps))
 
     def printSetup(self):
         """
@@ -1307,9 +1243,9 @@ class DEMPy(object):
 
         freq, args = self.pargs["print"][0], self.pargs["print"][1:]
 
-        self.lmp.command("thermo_style custom" + (" {}" * len(args)).format(*args))
-        self.lmp.command("thermo {}".format(freq))
-        self.lmp.command("thermo_modify norm no lost ignore")
+        self.command("thermo_style custom" + (" {}" * len(args)).format(*args))
+        self.command("thermo {}".format(freq))
+        self.command("thermo_modify norm no lost ignore")
 
     def writeSetup(self, only_mesh=False, name=None):
         """
@@ -1324,19 +1260,19 @@ class DEMPy(object):
 
             if hasattr(self, "dump"):
                 if self.dump:
-                    self.lmp.command("undump dump")
+                    self.command("undump dump")
 
             if not name:
                 name = "dump"
 
-            self.lmp.command(
+            self.command(
                 "dump {} ".format(name)
                 + " {sel} {style} {freq} {dir}/{pfile}".format(**self.pargs["traj"])
                 + (" {} " * len(self.pargs["traj"]["args"])).format(
                     *self.pargs["traj"]["args"]
                 )
             )
-            self.lmp.command(
+            self.command(
                 "dump_modify {} ".format(name)
                 + (" {} " * len(self.pargs["dump_modify"])).format(
                     *self.pargs["dump_modify"]
@@ -1350,7 +1286,7 @@ class DEMPy(object):
             if hasattr(self, "dump"):
                 if self.dump:
                     for dname in self.pargs["traj"]["dump_mname"]:
-                        self.lmp.command("undump " + dname)
+                        self.command("undump " + dname)
 
             if "mfile" not in self.pargs["traj"]:
                 for mesh in self.pargs["mesh"].keys():
@@ -1362,10 +1298,10 @@ class DEMPy(object):
                             args = self.pargs["traj"].copy()
                             args["mfile"] = mesh + "-*.vtk"
                             args["mName"] = mesh
-                            name = "dump" + str(np.random.randint(0, 1e8))
+                            name = "dump" + str(numpy.random.randint(0, 1e8))
                             self.pargs["traj"]["dump_mname"].append(name)
 
-                            self.lmp.command(
+                            self.command(
                                 "dump "
                                 + name
                                 + " all mesh/vtk {freq} {dir}/{mfile} id stress stresscomponents vel {mName}".format(
@@ -1391,10 +1327,10 @@ class DEMPy(object):
                         args["mfile"] = self.pargs["traj"]["mfile"]
                         args["mName"] = name
 
-                        dname = "dump" + str(np.random.randint(0, 1e8))
+                        dname = "dump" + str(numpy.random.randint(0, 1e8))
                         self.pargs["traj"]["dump_mname"] = [dname]
 
-                        self.lmp.command(
+                        self.command(
                             "dump "
                             + dname
                             + " all mesh/vtk {freq} {dir}/{mfile} id stress stresscomponents vel ".format(
@@ -1407,7 +1343,7 @@ class DEMPy(object):
 
         return name
 
-    def extractCoords(self):
+    def getCoords(self):
         """
         Extracts atomic positions from a certian frame and adds it to coords
         """
@@ -1415,23 +1351,23 @@ class DEMPy(object):
             logging.info("Extracting atomic poitions")
 
         # Extract coordinates from liggghts
-        self.lmp.command("variable x atom x")
-        x = Rxn.lmp.extract_variable("x", "group1", 1)
+        self.command("variable x atom x")
+        x = self.lmp.extract_variable("x", "group1", 1)
 
-        self.lmp.command("variable y atom y")
-        y = Rxn.lmp.extract_variable("y", "group1", 1)
+        self.command("variable y atom y")
+        y = self.lmp.extract_variable("y", "group1", 1)
 
-        self.lmp.command("variable z atom z")
-        z = Rxn.lmp.extract_variable("z", "group1", 1)
+        self.command("variable z atom z")
+        z = self.lmp.extract_variable("z", "group1", 1)
 
-        coords = np.zeros((self.lmp.get_natoms(), 3))
+        coords = numpy.zeros((self.get_natoms(), 3))
 
-        for i in range(self.lmp.get_natoms()):
+        for i in range(self.get_natoms()):
             coords[i, :] = x[i], y[i], z[i]
 
-        self.lmp.command("variable x delete")
-        self.lmp.command("variable y delete")
-        self.lmp.command("variable z delete")
+        self.command("variable x delete")
+        self.command("variable y delete")
+        self.command("variable z delete")
 
         return coords
 
@@ -1457,10 +1393,10 @@ class DEMPy(object):
             args["nfreq"] = 1
 
         if "name" not in args:
-            args["name"] = args["vars"] + "-" + str(np.random.randint(0, 1e8))
+            args["name"] = args["vars"] + "-" + str(numpy.random.randint(0, 1e8))
 
-        self.lmp.command("compute {name} {species} {var}".format(**args))
-        self.lmp.command(
+        self.command("compute {name} {species} {var}".format(**args))
+        self.command(
             "fix my{name} {species} ave/time {nevery} {nrepeat} {nfreq} c_{name} file {file}".format(
                 **args
             )
@@ -1496,9 +1432,9 @@ class DEMPy(object):
                 'Species must be specified (1,2,..., or "all") for which the viscous force applies.'
             )
 
-        name = np.random.randint(0, 1e8)
+        name = numpy.random.randint(0, 1e8)
 
-        self.lmp.command(
+        self.command(
             "fix {}".format(name)
             + " {species} viscous {gamma} scale ".format(**args)
             + (" {} " * len(args["scale"])).format(*args["scale"])
@@ -1511,7 +1447,7 @@ class DEMPy(object):
         if not self.rank:
             try:
                 # plt.rc('text', usetex=True)
-                data = np.loadtxt(fname, comments="#")
+                data = numpy.loadtxt(fname, comments="#")
                 time = data[:, 0]
 
                 if xscale is not None:
@@ -1524,7 +1460,7 @@ class DEMPy(object):
 
                 if output:
                     plt.savefig(output)
-            except:
+            except Exception:
                 raise Exception("Unexpected error:", sys.exc_info()[0])
 
     def saveas(self, name, fname):
@@ -1532,15 +1468,20 @@ class DEMPy(object):
         if not self.rank:
 
             try:
-                np.savetxt(fname, np.array(self.vars[name]))
-            except:
+                numpy.savetxt(fname, numpy.array(self.vars[name]))
+            except Exception:
                 raise Exception("Unexpected error:", sys.exc_info()[0])
 
     def command(self, cmd):
+        """Function for executing a LIGGGHTS command
+
+        :param cmd: input LIGGGHTS command
+        :type cmd: str
+
+        .. note:: For python 3, "cmd" is encoded as an 8 character utf
         """
-        Passes a specific command to LIGGGHTS
-        """
-        self.lmp.command(cmd)
+
+        self.lib.lammps_command(self.lmp, cmd.encode("utf-8"))
 
     def resume(self):
         """"""
@@ -1551,20 +1492,36 @@ class DEMPy(object):
         else:
             rfile = max(glob.iglob(rdir), key=os.path.getctime)
 
-        self.lmp.command("read_restart {}".format(rfile))
+        self.command("read_restart {}".format(rfile))
 
     def readData(self):
         """"""
         args = self.pargs["read_data"]
 
-        self.lmp.command("read_dump " + (" {}" * len(args)).format(*args))
+        self.command("read_dump " + (" {}" * len(args)).format(*args))
+
+    def load_file(self, filename):
+        """Function for loading LIGGGHTS input file scripts.
+
+        :param filename: input filename
+        :type file: str
+
+        .. note:: For python 3, "file" is encoded as an 8 character utf
+
+        """
+        self.lib.lammps_file(self.lmp, filename.encode("utf-8"))
 
     def __del__(self):
         """Destructor"""
         pass
 
     def close(self):
-        self.lmp.close()
+        if hasattr(self, "lmp") and self.opened:
+            self.lib.lammps_close(self.lmp)
+            self.lmp = None
 
     def __exit__(self, exc_type, exc_value, traceback):
         self.close()
+
+
+__engine__ = Liggghts
