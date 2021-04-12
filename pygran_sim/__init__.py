@@ -34,9 +34,12 @@ __version__ = versions["version"]
 __git_revision__ = versions["full-revisionid"]
 del get_versions, versions
 
+from . import engine
 from .dem import *
-from glob import glob as _glob
-from . import model_liggghts, engine_liggghts
+
+import glob
+import pathlib
+import os
 
 
 class _findEngines:
@@ -47,14 +50,13 @@ class _findEngines:
 
     def __init__(self):
         _dir, _ = __file__.split("__init__.py")
-        pyFiles = _glob(_dir + "*.py")
+        engine_paths = glob.glob(os.path.join(_dir, "engine", "*"))
 
-        for file in pyFiles:
-            _, fileName = file.split(_dir)
-
-            if fileName.startswith("engine_"):
-                engine, _ = fileName.split(".py")
-                setattr(self, engine.split("engine_")[1], engine)
+        for engine_path in engine_paths:
+            if os.path.isdir(engine_path):
+                posixPath = pathlib.Path(engine_path)
+                name = posixPath.name
+                setattr(self, name, f"pygran_sim.engine.{name}.engine_{name}")
 
 
 engines = _findEngines()
