@@ -215,6 +215,7 @@ class LIGGGHTSInput(ProtoInput):
                 if ss["style"].startswith("multisphere"):
                     ms = True
 
+        # default traj args
         traj = {
             "sel": "all",
             "freq": 1000,
@@ -237,14 +238,15 @@ class LIGGGHTSInput(ProtoInput):
             ),
         }
 
-        self.kwargs["traj"] = self.kwargs.get("traj", traj)
-
+        traj.update(self.kwargs["traj"])
+        self.kwargs["traj"] = traj
+        
         if "style" not in self.kwargs:
             self.kwargs["style"] = "sphere"
 
-        if "traj" in self.kwargs:
-            if ms:
-                if "mol" not in traj["args"]:
+        if ms:
+            if "args" in self.kwargs["traj"]:
+                if "mol" not in self.kwargs["traj"]["args"]:
                     self.kwargs["traj"]["args"] = self.kwargs["traj"]["args"] + ("mol",)
 
         # Need to generalize this: April 11, 2021
