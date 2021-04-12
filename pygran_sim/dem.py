@@ -34,18 +34,15 @@ try:
 except Exception:
     MPI = None
 
-from importlib import import_module
+import importlib
 from datetime import datetime
 import os, sys
 from .tools import _setConfig
-from . import models
+from .engine.liggghts import input_liggghts as models
 import shutil
 import logging
 
-try:
-    from ._version import __version__
-except Exception:
-    __version__ = None
+from . import __version__
 
 __all__ = ["DEM"]
 
@@ -69,7 +66,7 @@ class DEM:
             pargs["model"] = models.SpringDashpot
 
         # Overwrite pargs from the contact model's params
-        pargs = pargs["model"](**pargs).params
+        pargs = pargs["model"](**pargs).kwargs
 
         if MPI:
             self.comm = MPI.COMM_WORLD
@@ -154,7 +151,8 @@ class DEM:
         # update rank locally for each comm
         self.rank = self.split.Get_rank()
 
-        module = import_module(__name__.split(".dem")[0] + "." + self.pargs["engine"])
+        print(self.pargs["engine"])
+        module = importlib.import_module(self.pargs["engine"])
 
         output = (
             self.pargs["output"]
@@ -185,7 +183,7 @@ class DEM:
             level=logging.DEBUG,
         )
 
-        self.dem = module.DEMPy(split=self.split, library=self.library, **self.pargs)
+        self.dem = module.__engine__(split=self.split, library=self.library, **self.pargs)
 
         if not self.rank:
 
