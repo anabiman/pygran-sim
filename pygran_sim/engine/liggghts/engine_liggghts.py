@@ -59,6 +59,9 @@ try:
 except Exception:
     raise RuntimeError("mpi4py and an MPI library are needed to run engine_liggghts.")
 
+__all__ = ["LiggghtsAPI"]
+
+
 class RandPrime(object):
     """
     Random prime number generator with memory. The idea is to generate a unique prime number
@@ -84,7 +87,8 @@ class RandPrime(object):
         RandPrime.hist.append(randn)
         return randn
 
-class Liggghts(EngineAPI):
+
+class LiggghtsAPI(EngineAPI):
     """A class that implements a python interface for DEM computations
 
     :param units: unit system (default 'si'). See `ref <https://www.cfdem.com/media/DEM/docu/units.html>`_.
@@ -139,7 +143,7 @@ class Liggghts(EngineAPI):
 
         pargs["units"] = pargs.get("units", "si")
         pargs["dim"] = pargs.get("dim", 3)
-        comm = pargs.get("comm", MPI.COMM_WORLD)
+        pargs["comm"] = pargs.get("comm", MPI.COMM_WORLD)
 
         self.rank = split.Get_rank()
         self.split = split
@@ -152,21 +156,14 @@ class Liggghts(EngineAPI):
         self._configdir = os.path.join(os.path.expanduser("~"), ".config", "PyGran")
         self._monitor = []  # a list of tuples of (varname, filename) to monitor
 
+        super().__init__(
+            split=split, library=library, style=style, path=self.path, **self.pargs
+        )
+
+        comm = pargs["comm"]
+
         if "__version__" in pargs:
             self.__version__ = self.pargs["__version__"]
-
-        if not self.rank:
-            logging.info("Working in {}".format(self.path))
-            logging.info("Creating i/o directories")
-
-            if not os.path.exists(self.pargs["traj"]["dir"]):
-                os.makedirs(self.pargs["traj"]["dir"])
-
-            if self.pargs["restart"]:
-                if not os.path.exists(self.pargs["restart"][1]):
-                    os.makedirs(self.pargs["restart"][1])
-
-            logging.info("Instantiating LIGGGHTS object")
 
         if not MPI:
             raise ModuleNotFoundError(
@@ -183,16 +180,6 @@ class Liggghts(EngineAPI):
                 print("No library supplied. Exiting")
 
             sys.exit()
-
-        if not comm:
-            comm = MPI.COMM_WORLD
-
-        try:
-            self.lib = ctypes.CDLL(library, ctypes.RTLD_GLOBAL)
-        except Exception:
-            etype, value, tb = sys.exc_info()
-            traceback.print_exception(etype, value, tb)
-            raise RuntimeError("Could not load LIGGGHTS dynamic library")
 
         # if no ptr provided, create an instance of LIGGGHTS
         # don't know how to pass an MPI communicator from PyPar
@@ -315,6 +302,9 @@ class Liggghts(EngineAPI):
         )  # have no idea what this does, but it's imp for ghost atoms
         self.command("processors * * *")  # let LIGGGHTS handle DD
 
+    def load_library(self, library):
+        return ctypes.CDLL(library, ctypes.RTLD_GLOBAL)
+
     # scatter vector of atom properties across procs, ordered by atom ID
     # assume vector is of correct type and length, as created by gather_atoms()
     def scatter_atoms(self, name, type, count, data):
@@ -323,7 +313,7 @@ class Liggghts(EngineAPI):
     # return total number of atoms in system
     def get_natoms(self):
         return self.lib.lammps_get_natoms(self.lmp)
-    
+
     # return vector of atom properties gathered across procs, ordered by atom ID
     def gather_atoms(self, name, type, count):
         natoms = self.lib.lammps_get_natoms(self.lmp)
@@ -460,7 +450,6 @@ class Liggghts(EngineAPI):
         returns 0 for success, -1 if failed
         """
         return self.lib.lammps_set_variable(self.lmp, name, str(value))
-
 
     def setupParticles(self):
         """ Setup particle for insertion if requested by the user """
@@ -1056,9 +1045,7 @@ class Liggghts(EngineAPI):
             params["nns_skin"] = radius * 4
 
         self.command("neighbor {nns_skin} {nns_type}".format(**params))
-        self.command(
-            "neigh_modify delay 0 every {nns_freq} check yes".format(**params)
-        )
+        self.command("neigh_modify delay 0 every {nns_freq} check yes".format(**params))
 
     def createProperty(self, name, *args):
         """
@@ -1524,4 +1511,4 @@ class Liggghts(EngineAPI):
         self.close()
 
 
-__engine__ = Liggghts
+__engine__ = LiggghtsAPI
