@@ -238,9 +238,12 @@ class LIGGGHTSInput(ProtoInput):
             ),
         }
 
-        traj.update(self.kwargs["traj"])
+        if "traj" in self.kwargs:
+            # override default with user-def params
+            traj.update(self.kwargs["traj"])
+
         self.kwargs["traj"] = traj
-        
+
         if "style" not in self.kwargs:
             self.kwargs["style"] = "sphere"
 
