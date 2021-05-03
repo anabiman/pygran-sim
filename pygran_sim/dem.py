@@ -38,7 +38,7 @@ import importlib
 from datetime import datetime
 import os, sys
 from .tools import _setConfig
-from .engine.liggghts import input_liggghts as models
+from .engine.liggghts import input_liggghts
 import shutil
 import logging
 
@@ -61,9 +61,13 @@ class DEM:
         .. todo:: Provide a description of each arg in pargs
         """
 
+        assert (
+            pargs["engine"] == "pygran_sim.engine.liggghts.engine_liggghts"
+        ), "Only LIGGGHTS engine supported for now."
+
         # Instantiate contact model and store it in pargs
         if "model" not in pargs:
-            pargs["model"] = models.SpringDashpot
+            pargs["model"] = input_liggghts.SpringDashpot
 
         # Overwrite pargs from the contact model's params
         pargs = pargs["model"](**pargs).kwargs
@@ -151,7 +155,6 @@ class DEM:
         # update rank locally for each comm
         self.rank = self.split.Get_rank()
 
-        print(self.pargs["engine"])
         module = importlib.import_module(self.pargs["engine"])
 
         output = (
@@ -183,7 +186,9 @@ class DEM:
             level=logging.DEBUG,
         )
 
-        self.dem = module.__engine__(split=self.split, library=self.library, **self.pargs)
+        self.dem = module.__engine__(
+            split=self.split, library=self.library, **self.pargs
+        )
 
         if not self.rank:
 
