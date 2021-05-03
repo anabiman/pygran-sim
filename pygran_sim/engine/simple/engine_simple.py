@@ -48,3 +48,6 @@ from ..api import EngineAPI
 
 class SimpleAPI(EngineAPI):
     ...
+
+
+__engine__ = SimpleAPI
