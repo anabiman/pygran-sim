@@ -37,3 +37,17 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Changed
 - Numerous minor fixes and improvements in code quality
+
+## [1.1.0]
+### Added
+- Generic EngineAPI class for engines
+- Simple engine for 1D contact mechanics
+- Generic ProtoInput base class for engine params
+
+### Changed
+- Refactored code for generic engine implementation
+- Merged DEMPy and Liggghts into `Liggghts`, a subclass of EngineAPI
+- Improved mechanism for runtime discovery of engines
+
+### Removed
+- engine_liggghts.DEMPy
