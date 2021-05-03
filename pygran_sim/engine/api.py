@@ -97,12 +97,14 @@ class EngineAPI:
         if kwargs.get("rank"):
             raise NotImplementedError
 
-        if not comm.Get_rank():
+        rank = comm.Get_rank() if comm is not None else 0
+
+        if not rank:
             logging.info("Using " + library + " for DEM computations")
 
         try:
             self.lib = self.load_library(library)
-        except Exception:
+        except RuntimeError:
             etype, value, tb = sys.exc_info()
             traceback.print_exception(etype, value, tb)
             raise RuntimeError(f"Could not load dynamic library: {library}")
@@ -113,17 +115,27 @@ class EngineAPI:
         if "__version__" in kwargs:
             self.__version__ = kwargs["__version__"]
 
-        logging.info("Working in {}".format(path))
-        logging.info("Creating i/o directories")
+        if not rank:
+            logging.info("Working in {}".format(path))
+            logging.info("Creating i/o directories")
 
-        if not os.path.exists(kwargs["traj"]["dir"]):
-            os.makedirs(kwargs["traj"]["dir"])
+            if not os.path.exists(kwargs["traj"]["dir"]):
+                os.makedirs(kwargs["traj"]["dir"])
 
-        if kwargs["restart"]:
-            if not os.path.exists(kwargs["restart"][1]):
-                os.makedirs(kwargs["restart"][1])
+            if kwargs["restart"]:
+                if not os.path.exists(kwargs["restart"][1]):
+                    os.makedirs(kwargs["restart"][1])
 
-        logging.info("Instantiated DEMPy object")
+            logging.info("Instantiated DEMPy object")
+
+    def load_library(self, library):
+        """Function for loading library file.
+
+        :param file: input filename
+        :type file: str
+
+        """
+        raise NotImplementedError
 
     def load_file(self, file):
         """Function for loading input file scripts to executables.
