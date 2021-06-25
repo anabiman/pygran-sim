@@ -33,7 +33,7 @@ import versioneer
 
 
 class Track(install):
-    """ An install class that enables the tracking of installation/compilation progress """
+    """An install class that enables the tracking of installation/compilation progress"""
 
     def execute(self, cmd, cwd="."):
         popen = subprocess.Popen(
@@ -73,7 +73,7 @@ class Track(install):
 
 
 class LIGGGHTS(Track):
-    """ A class that enables the compilation of LIGGGHTS-PUBLIC from github """
+    """A class that enables the compilation of LIGGGHTS-PUBLIC from github"""
 
     def do_pre_install_stuff(self):
 

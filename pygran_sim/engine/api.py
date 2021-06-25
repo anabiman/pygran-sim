@@ -92,7 +92,7 @@ class EngineAPI:
     def __init__(
         self, *, split, library, style, comm=None, dim=3, units="si", **kwargs
     ):
-        """ Initialize some settings and specifications """
+        """Initialize some settings and specifications"""
 
         if kwargs.get("rank"):
             raise NotImplementedError
@@ -235,7 +235,7 @@ class EngineAPI:
         raise NotImplementedError
 
     def setupParticles(self):
-        """ Setup particle for insertion if requested by the user """
+        """Setup particle for insertion if requested by the user"""
         raise NotImplementedError
 
     def resume(self):
@@ -250,7 +250,7 @@ class EngineAPI:
         raise NotImplementedError
 
     def set(self, *args):
-        """ Set group/atom attributes """
+        """Set group/atom attributes"""
         raise NotImplementedError
 
     def setupWall(self, wtype, species=None, plane=None, peq=None) -> str:

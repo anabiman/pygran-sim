@@ -358,7 +358,7 @@ class DEM:
                 return self.dem.run(nsteps, dt, itype)
 
     def setupParticles(self):
-        """ Internal function used to create particles in LIGGGHTS """
+        """Internal function used to create particles in LIGGGHTS"""
 
         for i in range(self.nSim):
             if self.rank < self.pProcs * (i + 1):

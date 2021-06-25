@@ -246,7 +246,7 @@ class ContactModel:
         raise NotImplementedError("Not yet implemented")
 
     def numericalForce(self, time, delta):
-        """ Returns the force used for numerical solvers """
+        """Returns the force used for numerical solvers"""
 
         force = self.normalForce(float(delta[0]), float(delta[1]))
 
@@ -437,7 +437,7 @@ class SpringDashpot(Model):
         return force
 
     def tangForce(self, delta, deltav):
-        """ Returns the total tangential force based on the Coulomb model """
+        """Returns the total tangential force based on the Coulomb model"""
         raise NotImplementedError("Not yet implemented")
 
 

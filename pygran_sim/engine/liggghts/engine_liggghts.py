@@ -76,7 +76,7 @@ class RandPrime(object):
         )
 
     def gen(self):
-        """ Hackish ~ silly way of LIGGGHTS using prime numbers > 10000 for unfounded reasons """
+        """Hackish ~ silly way of LIGGGHTS using prime numbers > 10000 for unfounded reasons"""
         low, high = 1 + 1e4, 1e8
 
         while True:
@@ -136,7 +136,7 @@ class LiggghtsAPI(EngineAPI):
         ptr=None,
         **pargs
     ):
-        """ Initialize some settings and specifications """
+        """Initialize some settings and specifications"""
 
         if "print" not in pargs:
             pargs["print"] = (10 ** 4, "time", "dt", "atoms")
@@ -382,7 +382,7 @@ class LiggghtsAPI(EngineAPI):
             return None
 
     def createDomain(self):
-        """ Define the domain of the simulation """
+        """Define the domain of the simulation"""
         if not self.rank:
             logging.info("Creating domain")
 
@@ -452,7 +452,7 @@ class LiggghtsAPI(EngineAPI):
         return self.lib.lammps_set_variable(self.lmp, name, str(value))
 
     def setupParticles(self):
-        """ Setup particle for insertion if requested by the user """
+        """Setup particle for insertion if requested by the user"""
 
         for ss in self.pargs["species"]:
 
@@ -1016,7 +1016,7 @@ class LiggghtsAPI(EngineAPI):
         self.lmp.createParticles(type, style, *args)
 
     def set(self, *args):
-        """ Set group/atom attributes """
+        """Set group/atom attributes"""
         self.command("set " + (" {}" * len(args)).format(*args))
 
     def setupNeighbor(self, **params):
