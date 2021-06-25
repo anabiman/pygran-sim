@@ -60,6 +60,9 @@ class DEM:
 
         .. todo:: Provide a description of each arg in pargs
         """
+        pargs["engine"] = pargs.get(
+            "engine", "pygran_sim.engine.liggghts.engine_liggghts"
+        )
 
         assert (
             pargs["engine"] == "pygran_sim.engine.liggghts.engine_liggghts"
