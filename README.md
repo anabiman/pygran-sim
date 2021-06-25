@@ -41,13 +41,13 @@ This is achieved by importing the <i>simulation</i> module as shown in the scrip
 <p style="text-align:center;"><img src="http://andrew-abimansour.github.io/PyGran/images/hopper.png" width="600"></p>
 
 ```python
-import PyGranSim as simulation
-from PyGranParams import stearicAcid, steel
+import pygran_sim
+from pygran_params import stearicAcid, steel
 
 # Create a DEM parameter dictionary
 param = {
 
-	'model': simulation.models.SpringDashpot,
+	'model': pygran_sim.models.SpringDashpot,
 	'boundary': ('f','f','f'),
 	'box':  (-1e-3, 1e-3, -1e-3, 1e-3, 0, 4e-3),
 
@@ -61,7 +61,7 @@ param = {
 }
 
 # Instantiate a DEM class
-sim = simulation.DEM(**param['model'])
+sim = pygran_sim.DEM(**param['model'])
 
 # Insert 1000 particles for species 1 (stearic acid)
 insert = sim.insert(species=1, value=1000) 
