@@ -46,7 +46,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Changed
 - Refactored code for generic engine implementation
-- Merged DEMPy and Liggghts into `Liggghts`, a subclass of EngineAPI
+- Merged DEMPy and Liggghts into `LiggghtsAPI`, a subclass of EngineAPI
 - Improved mechanism for runtime discovery of engines
 
 ### Removed
