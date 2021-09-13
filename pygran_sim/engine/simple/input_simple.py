@@ -674,16 +674,16 @@ class ThorntonNing(Model):
                 self.radiusp = 4.0 / 3.0 * yEff * contMaxRadius ** 3 / self.maxForce
 
                 # Solve for the contact radius
-                a = 4.0 * yEff / (3 * self.radiusp)
+                # a = 4.0 * yEff / (3 * self.radiusp)
 
-                if hasattr(self, "cohesionEnergyDensity"):
-                    b = -np.sqrt(8.0 * np.pi * self.cohesionEnergyDensity * yEff)
-                else:
-                    b = 0
+                # if hasattr(self, "cohesionEnergyDensity"):
+                #    b = -np.sqrt(8.0 * np.pi * self.cohesionEnergyDensity * yEff)
+                # else:
+                #    b = 0
 
-                c = -self.maxForce
+                # c = -self.maxForce
 
-                x = (-b + np.sqrt(b * b - 4 * a * c)) / (2 * a)
+                # x = (-b + np.sqrt(b * b - 4 * a * c)) / (2 * a)
                 # contRadius = x**(2.0/3.0)
                 # Why am I doing this? I commented the line above. what is contRadius used for???? This seems to be equal to contMaxRadius when cohesion = off
 
