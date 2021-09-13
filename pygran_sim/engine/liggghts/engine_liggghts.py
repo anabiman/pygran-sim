@@ -43,7 +43,7 @@ See the README file in the top-level LAMMPS directory.
 
 """
 
-import sys, traceback
+import sys
 import ctypes
 import numpy
 import os
@@ -62,7 +62,7 @@ except Exception:
 __all__ = ["LiggghtsAPI"]
 
 
-class RandPrime(object):
+class RandPrime:
     """
     Random prime number generator with memory. The idea is to generate a unique prime number
     for LIGGGHTS.
