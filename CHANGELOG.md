@@ -50,4 +50,4 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Improved mechanism for runtime discovery of engines
 
 ### Removed
-- engine_liggghts.DEMPy
+- Redundant engine_liggghts.DEMPy
