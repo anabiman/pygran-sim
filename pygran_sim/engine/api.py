@@ -47,8 +47,6 @@ import sys, traceback
 import os
 import glob
 import sys
-from importlib import import_module
-import itertools
 import logging
 from typing import List
 
@@ -231,7 +229,7 @@ class EngineAPI:
 
     ### Setup methods
     def initialize(self, **kwargs):
-        """"""
+        """..."""
         raise NotImplementedError
 
     def setupParticles(self):
@@ -239,7 +237,7 @@ class EngineAPI:
         raise NotImplementedError
 
     def resume(self):
-        """"""
+        """..."""
         rdir = "{}/*".format(self.pargs["restart"][1])
 
         if self.pargs["restart"][-1]:
@@ -247,7 +245,7 @@ class EngineAPI:
         else:
             rfile = max(glob.iglob(rdir), key=os.path.getctime)
 
-        raise NotImplementedError
+        return rfile
 
     def set(self, *args):
         """Set group/atom attributes"""
