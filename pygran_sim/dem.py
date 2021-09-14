@@ -38,7 +38,6 @@ import importlib
 from datetime import datetime
 import os, sys
 from .tools import _setConfig
-from .engine.liggghts import input_liggghts
 import shutil
 import logging
 
@@ -51,7 +50,7 @@ class DEM:
     """A generic class that handles communication for a DEM object in a way that
     is independent of the engine used."""
 
-    def __init__(self, **pargs):
+    def __init__(self, **kwargs):
         """Upon instantiation, this object initializes an MPI communicator and
         partitions proccesors based on user input
 
@@ -60,20 +59,24 @@ class DEM:
 
         .. todo:: Provide a description of each arg in pargs
         """
-        pargs["engine"] = pargs.get(
-            "engine", "pygran_sim.engine.liggghts.engine_liggghts"
+        kwargs["engine"] = kwargs.get(
+            "engine",
+            "pygran_sim.engine.liggghts.engine_liggghts",  # defaults to liggghts
         )
 
-        assert (
-            pargs["engine"] == "pygran_sim.engine.liggghts.engine_liggghts"
-        ), "Only LIGGGHTS engine supported for now."
+        # assert (
+        #    pargs["engine"] == "pygran_sim.engine.liggghts.engine_liggghts"
+        # ), "Only LIGGGHTS engine supported for now."
 
         # Instantiate contact model and store it in pargs
-        if "model" not in pargs:
-            pargs["model"] = input_liggghts.SpringDashpot
+        if "model" not in kwargs:
+            eng_path, eng_name = kwargs["engine"].split(".engine_")
+            kwargs["model"] = importlib.import_module(
+                eng_path + ".input_" + eng_name
+            ).SpringDashpot
 
-        # Overwrite pargs from the contact model's params
-        pargs = pargs["model"](**pargs).kwargs
+        # Overwrite kwargs from the contact model's params
+        pargs = kwargs["model"](**kwargs).kwargs
 
         if MPI:
             self.comm = MPI.COMM_WORLD
@@ -93,9 +96,12 @@ class DEM:
         # Check if .config files eixsts else create it
         # Only one process needs to do this
         if not self.rank:
-            self.library, src, version = _setConfig(
-                wdir=self._dir, engine=self.pargs["engine"].split("engine_")[1]
-            )
+            if kwargs["engine"] == "pygran_sim.engine.liggghts.engine_liggghts":
+                self.library, src, version = _setConfig(
+                    wdir=self._dir, engine=self.pargs["engine"].split("engine_")[1]
+                )
+            else:
+                self.library, src, version = None, None, None
 
             if version:
                 self.pargs["__version__"] = version
@@ -240,7 +246,7 @@ class DEM:
                 ):  # Make sure we're not reading user-defined scalars (e.g. density)
                     self.createProperty(item, *self.pargs["materials"][item])
 
-        self.printSetup()
+        self.setupPrint()
 
         # Create links to the particle/mesh files (easily accessible to the user)
         if "pfile" in self.pargs["traj"]:
@@ -440,17 +446,17 @@ class DEM:
             if self.rank < self.pProcs * (i + 1):
                 return self.dem.setupWall(wtype, species, plane, peq)
 
-    def printSetup(self):
+    def setupPrint(self):
         """
         Updates the print setup used to set which variables to write to file,
         and their format.
         """
         for i in range(self.nSim):
             if self.rank < self.pProcs * (i + 1):
-                self.dem.printSetup()
+                self.dem.setupPrint()
                 break
 
-    def writeSetup(self, only_mesh=False, name=None):
+    def setupWrite(self, only_mesh=False, name=None):
         """
         This creates dump files for particles and meshes in the system. In LIGGGHTS, all meshes must be declared once, so if a mesh is removed during
         the simulation, this function has to be called again, usually with only_mesh=True to keep the particle dump intact.
@@ -465,7 +471,7 @@ class DEM:
         """
         for i in range(self.nSim):
             if self.rank < self.pProcs * (i + 1):
-                dumpID = self.dem.writeSetup(only_mesh, name)
+                dumpID = self.dem.setupWrite(only_mesh, name)
 
                 # Create or update links to the particle/mesh files (easily accessible to the user)
                 if "pfile" in self.lmp.pargs["traj"]:
