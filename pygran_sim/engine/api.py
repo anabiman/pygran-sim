@@ -88,7 +88,15 @@ class EngineAPI:
     """
 
     def __init__(
-        self, *, split, library, style, comm=None, dim=3, units="si", **kwargs
+        self,
+        *,
+        split,
+        library,
+        style="spherical",
+        comm=None,
+        dim=3,
+        units="si",
+        **kwargs,
     ):
         """Initialize some settings and specifications"""
 
@@ -97,7 +105,7 @@ class EngineAPI:
 
         rank = comm.Get_rank() if comm is not None else 0
 
-        if not rank:
+        if not rank and library:
             logging.info("Using " + library + " for DEM computations")
 
         try:
