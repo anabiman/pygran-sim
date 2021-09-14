@@ -982,7 +982,7 @@ class LiggghtsAPI(EngineAPI):
                 self.importMeshes()
 
                 # Create new dump setups, leaving particle dumps intact
-                self.writeSetup(only_mesh=True)
+                self.setupWrite(only_mesh=True)
 
                 return 0
 
@@ -1097,7 +1097,7 @@ class LiggghtsAPI(EngineAPI):
             )
 
     def initialize(self, **params):
-        """"""
+        """..."""
 
         if self.pargs["restart"]:
             self.command("restart {} {}/{}".format(*self.pargs["restart"][:-1]))
@@ -1138,9 +1138,9 @@ class LiggghtsAPI(EngineAPI):
         # Write output to trajectory by default unless the user specifies otherwise
         if "dump" in self.pargs:
             if self.pargs["dump"] == True:
-                self.writeSetup()
+                self.setupWrite()
         else:
-            self.writeSetup()
+            self.setupWrite()
 
     def setupIntegrate(self, itype=None, group=None):
         """
@@ -1221,7 +1221,7 @@ class LiggghtsAPI(EngineAPI):
 
         self.command("run {}".format(steps))
 
-    def printSetup(self):
+    def setupPrint(self):
         """
         Specify which variables to write to file, and their format
         """
@@ -1234,7 +1234,7 @@ class LiggghtsAPI(EngineAPI):
         self.command("thermo {}".format(freq))
         self.command("thermo_modify norm no lost ignore")
 
-    def writeSetup(self, only_mesh=False, name=None):
+    def setupWrite(self, only_mesh=False, name=None):
         """
         This creates dumps for particles and meshes in the system. In LIGGGHTS, all meshes must be declared once, so if a mesh is removed during
         the simulation, this function has to be called again, usually with only_mesh=True to keep the particle dump intact.
@@ -1430,7 +1430,7 @@ class LiggghtsAPI(EngineAPI):
         return name
 
     def plot(self, fname, xlabel, ylabel, output=None, xscale=None):
-        """"""
+        """..."""
         if not self.rank:
             try:
                 # plt.rc('text', usetex=True)
@@ -1451,7 +1451,7 @@ class LiggghtsAPI(EngineAPI):
                 raise Exception("Unexpected error:", sys.exc_info()[0])
 
     def saveas(self, name, fname):
-        """"""
+        """..."""
         if not self.rank:
 
             try:
@@ -1471,7 +1471,7 @@ class LiggghtsAPI(EngineAPI):
         self.lib.lammps_command(self.lmp, cmd.encode("utf-8"))
 
     def resume(self):
-        """"""
+        """..."""
         rdir = "{}/*".format(self.pargs["restart"][1])
 
         if self.pargs["restart"][-1]:
@@ -1482,7 +1482,7 @@ class LiggghtsAPI(EngineAPI):
         self.command("read_restart {}".format(rfile))
 
     def readData(self):
-        """"""
+        """..."""
         args = self.pargs["read_data"]
 
         self.command("read_dump " + (" {}" * len(args)).format(*args))
