@@ -38,10 +38,43 @@ and LICENSE files.
 """
 from scipy.integrate import ode
 from scipy.optimize import fsolve
+from pygran_sim.base import ProtoInput
 import numpy as np
 
 
-class ContactModel:
+class ContactModel(ProtoInput):
+    def __init__(self, **kwargs):
+
+        # default traj args
+        traj = {
+            "sel": "all",
+            "freq": 1000,
+            "dir": "traj",
+            "style": "custom",
+            "pfile": "traj.dump",
+            "args": (
+                "id",
+                "type",
+                "x",
+                "y",
+                "z",
+                "radius",
+                "vx",
+                "vy",
+                "vz",
+                "fx",
+                "fy",
+                "fz",
+            ),
+        }
+
+        if "traj" in kwargs:
+            # override default with user-def params
+            traj.update(kwargs["traj"])
+
+        kwargs["traj"] = traj
+        super().__init__(**kwargs)
+
     def contactTime(self):
         """Computes the characteristic collision time assuming for a spring dashpot model
 
@@ -258,7 +291,7 @@ class ContactModel:
         raise NotImplementedError("Not yet implemented")
 
 
-class SpringDashpot(Model):
+class SpringDashpot(ContactModel):
     """
     A class that implements the linear spring model for granular materials
 
@@ -441,7 +474,7 @@ class SpringDashpot(Model):
         raise NotImplementedError("Not yet implemented")
 
 
-class HertzMindlin(Model):
+class HertzMindlin(ContactModel):
     """
     A class that implements the linear spring model for granular materials
     """
@@ -565,7 +598,7 @@ class HertzMindlin(Model):
         return self.cohesionEnergyDensity * 2.0 * np.pi * delta * 2.0 * radius
 
 
-class ThorntonNing(Model):
+class ThorntonNing(ContactModel):
     """
     A basic class that implements the Thornton elasto-plastic model based on :cite:`thornton1998theoretical`.
     """
