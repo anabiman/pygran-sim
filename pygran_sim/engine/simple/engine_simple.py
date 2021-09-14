@@ -47,7 +47,31 @@ from ..api import EngineAPI
 
 
 class SimpleAPI(EngineAPI):
-    ...
+    def load_library(self, library):
+        """Function for loading library file.
+
+        :param file: input filename
+        :type file: str
+
+        """
+        return self
+
+    ### Setup methods
+    def initialize(self, **kwargs):
+        """..."""
+        ...
+
+    def setupPrint(self):
+        """
+        Specify which variables to write to file, and their format
+        """
+        ...
+
+    def setupIntegrate(self):
+        """
+        ...
+        """
+        ...
 
 
 __engine__ = SimpleAPI
