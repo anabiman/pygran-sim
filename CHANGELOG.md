@@ -43,6 +43,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Generic EngineAPI class for engines
 - Simple engine for 1D contact mechanics
 - Generic ProtoInput base class for engine params
+- Methods EngineAPI.SetupPrint and EngineAPI.setupWrite
 
 ### Changed
 - Refactored code for generic engine implementation
@@ -51,3 +52,4 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Removed
 - Redundant engine_liggghts.DEMPy
+- Methods EngineAPI.printSetup and EngineAPI.writeSetup
