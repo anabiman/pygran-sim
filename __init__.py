@@ -26,4 +26,4 @@
   and LICENSE files.
 """
 
-from .PyGranSim import *
+from .pygran_sim import *
