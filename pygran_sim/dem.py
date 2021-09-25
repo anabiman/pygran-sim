@@ -40,6 +40,7 @@ import os, sys
 from .tools import _setConfig
 import shutil
 import logging
+import warnings
 
 from . import __version__
 
@@ -85,7 +86,7 @@ class DEM:
         else:
             self.comm = None
             self.rank = 0
-            self.tProcs = 0
+            self.tProcs = 1
 
         self.nSim = pargs["nSim"]
         self.model = str(pargs["model"]).split("'")[1].split(".")[-1]
@@ -159,10 +160,12 @@ class DEM:
                 # In case of odd number of procs, place the one left on the last communicator
                 self.color = self.nSim
 
-        self.split = self.comm.Split(color=self.color, key=self.rank)
-
-        # update rank locally for each comm
-        self.rank = self.split.Get_rank()
+        if self.comm:
+            self.split = self.comm.Split(color=self.color, key=self.rank)
+            # update rank locally for each comm
+            self.rank = self.split.Get_rank()
+        else:
+            self.split = self.comm
 
         module = importlib.import_module(self.pargs["engine"])
 
@@ -174,11 +177,7 @@ class DEM:
 
         if not self.split.Get_rank():
             if os.path.exists(output):
-                print(
-                    "WARNING: output dir {} already exists. Proceeding ...".format(
-                        output
-                    )
-                )
+                warnings.warn(f"output dir {output} already exists. Proceeding ...")
             else:
                 os.mkdir(output)
 
