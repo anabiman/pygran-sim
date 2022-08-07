@@ -44,11 +44,14 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Simple engine for 1D contact mechanics
 - Generic ProtoInput base class for engine params
 - Methods EngineAPI.SetupPrint and EngineAPI.setupWrite
+- Support for LIGGGHTS v3.8.0 and latest (86544c3)
 
 ### Changed
 - Refactored code for generic engine implementation
 - Merged DEMPy and Liggghts into `LiggghtsAPI`, a subclass of EngineAPI
 - Improved mechanism for runtime discovery of engines
+- Fixed bug in DEM class setting total number of procs to 0 for single-core runs
+- Lower-case package name
 
 ### Removed
 - Redundant engine_liggghts.DEMPy
