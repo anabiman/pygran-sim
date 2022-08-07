@@ -135,7 +135,7 @@ setup(
     include_package_data=True,
     install_requires=["numpy", "scipy"],
     extras_require={
-        "extras": ["mpi4py", "vtk", "Pillow"],
+        "extras": ["mpi4py"],
         "tests": ["pytest", "pytest-cov"],
     },
     long_description="A PyGran submodule for running DEM simulation. See http://www.pygran.org for more info on PyGran.",
