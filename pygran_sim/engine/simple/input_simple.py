@@ -36,10 +36,11 @@ and LICENSE files.
   reduced mass, radius, etc. i.e. :math:`1/m_{ij} = 1/m_i + 1/m_j`
 
 """
+import numpy as np
 from scipy.integrate import ode
 from scipy.optimize import fsolve
+
 from pygran_sim.base import ProtoInput
-import numpy as np
 
 
 class ContactModel(ProtoInput):
@@ -95,7 +96,7 @@ class ContactModel(ProtoInput):
 
         kn = SD.springStiff(radius)
 
-        return np.sqrt(mass * (np.pi ** 2.0 + np.log(rest) ** 2) / kn)
+        return np.sqrt(mass * (np.pi**2.0 + np.log(rest) ** 2) / kn)
 
     def displacement(self, dt=None):
         """Generator that computes (iteratively) the overlap distance (displacement) as a function of time
@@ -199,7 +200,7 @@ class ContactModel(ProtoInput):
 
                 poiss = self.poissonsRatio
                 yMod = self.youngsModulus
-                yMod /= 2.0 * (1.0 - poiss ** 2)
+                yMod /= 2.0 * (1.0 - poiss**2)
 
                 # def jkr_disp(a, *args):
                 # 	delta, Gamma, yMod, radius = args
@@ -335,7 +336,7 @@ class SpringDashpot(ContactModel):
         radius = self.radius
         mass = self.mass
 
-        yMod /= 2.0 * (1.0 - poiss ** 2)
+        yMod /= 2.0 * (1.0 - poiss**2)
 
         v0 = self.characteristicVelocity
 
@@ -344,7 +345,7 @@ class SpringDashpot(ContactModel):
             / 15.0
             * np.sqrt(radius)
             * yMod
-            * (15.0 * mass * v0 ** 2.0 / (16.0 * np.sqrt(radius) * yMod)) ** (1.0 / 5.0)
+            * (15.0 * mass * v0**2.0 / (16.0 * np.sqrt(radius) * yMod)) ** (1.0 / 5.0)
         )
 
     def dissCoef(self, delta=None):
@@ -358,12 +359,12 @@ class SpringDashpot(ContactModel):
         yMod = self.youngsModulus
 
         mass = self.mass
-        yMod /= 2.0 * (1.0 - poiss ** 2)
+        yMod /= 2.0 * (1.0 - poiss**2)
 
         kn = self.springStiff()
         loge = np.log(rest)
 
-        return loge * np.sqrt(4.0 * mass * kn / (np.pi ** 2.0 + loge ** 2.0))
+        return loge * np.sqrt(4.0 * mass * kn / (np.pi**2.0 + loge**2.0))
 
     def dissForce(self, delta, deltav):
         """Returns the dissipative (viscous) force: :math:`F_d = - c_n \dot{\delta_n}`
@@ -509,7 +510,7 @@ class HertzMindlin(ContactModel):
         """
         poiss = self.poissonsRatio
         yMod = self.youngsModulus
-        yEff = yMod * 0.5 / (1.0 - poiss ** 2)
+        yEff = yMod * 0.5 / (1.0 - poiss**2)
 
         contRadius = self._contactRadius(delta, self.radius)
 
@@ -539,7 +540,7 @@ class HertzMindlin(ContactModel):
         rest = self.coefficientRestitution
         yMod = self.youngsModulus
         poiss = self.poissonsRatio
-        yEff = yMod * 0.5 / (1.0 - poiss ** 2)
+        yEff = yMod * 0.5 / (1.0 - poiss**2)
 
         mass = self.mass
 
@@ -549,7 +550,7 @@ class HertzMindlin(ContactModel):
             2.0
             * np.sqrt(5.0 / 6.0)
             * np.log(rest)
-            / np.sqrt(np.log(rest) ** 2 + np.pi ** 2)
+            / np.sqrt(np.log(rest) ** 2 + np.pi**2)
             * np.sqrt(mass * 2 * yEff * contRadius)
         )
 
@@ -634,11 +635,11 @@ class ThorntonNing(ContactModel):
         """
 
         poiss = self.poissonsRatio
-        yEff = self.youngsModulus / (2.0 * (1.0 - poiss ** 2))
+        yEff = self.youngsModulus / (2.0 * (1.0 - poiss**2))
         py = self.yieldPress
 
         def obj(x, *args):
-            func = py * x - 2 * yEff * x ** 3 / (np.pi * self.radius)
+            func = py * x - 2 * yEff * x**3 / (np.pi * self.radius)
 
             if hasattr(self, "cohesionEnergyDensity"):
                 func += np.sqrt(2 * self.cohesionEnergyDensity * yEff / np.pi)
@@ -646,7 +647,7 @@ class ThorntonNing(ContactModel):
             return func
 
         def jacob(x, *args):
-            return py - 6 * yEff * x ** 2 / (np.pi * self.radius)
+            return py - 6 * yEff * x**2 / (np.pi * self.radius)
 
         guess = py * np.pi * self.radius / (2.0 * yEff)
 
@@ -670,7 +671,7 @@ class ThorntonNing(ContactModel):
         """
         poiss = self.poissonsRatio
         yMod = self.youngsModulus
-        yEff = yMod * 0.5 / (1.0 - poiss ** 2)
+        yEff = yMod * 0.5 / (1.0 - poiss**2)
 
         return 4.0 / 3.0 * yEff * self._contactRadius(delta, self.radius)
 
@@ -685,7 +686,7 @@ class ThorntonNing(ContactModel):
 
         poiss = self.poissonsRatio
         yMod = self.youngsModulus
-        yEff = yMod * 0.5 / (1.0 - poiss ** 2)
+        yEff = yMod * 0.5 / (1.0 - poiss**2)
 
         if self.unloading:
             if not self.noCheck:
@@ -700,11 +701,11 @@ class ThorntonNing(ContactModel):
                         * np.pi
                         * self.cohesionEnergyDensity
                         * yEff
-                        * contMaxRadius ** 3
+                        * contMaxRadius**3
                     )
 
                 reff = self.radius
-                self.radiusp = 4.0 / 3.0 * yEff * contMaxRadius ** 3 / self.maxForce
+                self.radiusp = 4.0 / 3.0 * yEff * contMaxRadius**3 / self.maxForce
 
                 # Solve for the contact radius
                 # a = 4.0 * yEff / (3 * self.radiusp)
@@ -729,10 +730,10 @@ class ThorntonNing(ContactModel):
                         -3.0
                         / 4.0
                         * (
-                            np.pi ** 2
-                            * self.cohesionEnergyDensity ** 2
+                            np.pi**2
+                            * self.cohesionEnergyDensity**2
                             * self.radiusp
-                            / yEff ** 2
+                            / yEff**2
                         )
                         ** (1.0 / 3.0)
                         + self.deltap
@@ -746,7 +747,7 @@ class ThorntonNing(ContactModel):
 
             self.contRadius = self._contactRadius(delta - self.deltap, self.radiusp)
 
-            force = 4.0 / 3.0 * yEff * self.contRadius ** 3 / self.radiusp
+            force = 4.0 / 3.0 * yEff * self.contRadius**3 / self.radiusp
 
             return force
 
@@ -754,11 +755,11 @@ class ThorntonNing(ContactModel):
 
         if self.contRadius < self.radiusy:
 
-            force = 4.0 / 3.0 * yEff * self.contRadius ** 3 / self.radius
+            force = 4.0 / 3.0 * yEff * self.contRadius**3 / self.radius
 
             return force
         else:
-            force = 4.0 / 3.0 * yEff * self.radiusy ** 3 / self.radius
+            force = 4.0 / 3.0 * yEff * self.radiusy**3 / self.radius
 
             return force
 
@@ -781,7 +782,7 @@ class ThorntonNing(ContactModel):
         contRadius = self._contactRadius(delta, self.radius)
 
         if contRadius >= self.radiusy:
-            return np.pi * py * (contRadius ** 2 - self.radiusy ** 2)
+            return np.pi * py * (contRadius**2 - self.radiusy**2)
         else:
             return 0
 
@@ -815,17 +816,17 @@ class ThorntonNing(ContactModel):
 
         poiss = self.poissonsRatio
         yMod = self.youngsModulus
-        yEff = yMod * 0.5 / (1.0 - poiss ** 2)
+        yEff = yMod * 0.5 / (1.0 - poiss**2)
 
         if hasattr(self, "cohesionEnergyDensity"):
             if self.unloading:
 
                 force = np.sqrt(
-                    8 * np.pi * self.cohesionEnergyDensity * yEff * self.contRadius ** 3
+                    8 * np.pi * self.cohesionEnergyDensity * yEff * self.contRadius**3
                 )
             elif self.contRadius < self.radiusy:
                 force = np.sqrt(
-                    8 * np.pi * self.cohesionEnergyDensity * yEff * self.contRadius ** 3
+                    8 * np.pi * self.cohesionEnergyDensity * yEff * self.contRadius**3
                 )
             else:
                 force = self.radiusy * np.sqrt(
@@ -843,8 +844,8 @@ class ThorntonNing(ContactModel):
         """
 
         poiss = self.poissonsRatio
-        yEff = 0.5 * self.youngsModulus / (1.0 - poiss ** 2)
+        yEff = 0.5 * self.youngsModulus / (1.0 - poiss**2)
         density = self.density
         py = self.yieldPress
 
-        return 1.56 * np.sqrt(py ** 5 / (yEff ** 4 * density))
+        return 1.56 * np.sqrt(py**5 / (yEff**4 * density))

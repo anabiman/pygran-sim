@@ -38,7 +38,6 @@ and LICENSE files.
 """
 import os
 
-
 try:
     from mpi4py import MPI
 except Exception:

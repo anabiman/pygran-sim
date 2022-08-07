@@ -33,7 +33,8 @@ try:
     from mpi4py import MPI
 except Exception:
     pass  # no MPI, no problem
-import os, glob
+import glob
+import os
 
 
 def _find_number_models(src_dir, mtype="normal"):

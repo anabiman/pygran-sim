@@ -24,11 +24,16 @@
   and LICENSE files.
 """
 
-from setuptools import setup, find_packages
+import glob
+import os
+import shutil
 import subprocess
-import glob, shutil, os, sys
-from distutils.command.install import install
+import sys
 from distutils.command.clean import clean
+from distutils.command.install import install
+
+from setuptools import find_packages, setup
+
 import versioneer
 
 

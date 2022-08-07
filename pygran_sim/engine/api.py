@@ -43,11 +43,11 @@ See the README file in the top-level LAMMPS directory.
 
 """
 
-import sys, traceback
-import os
 import glob
-import sys
 import logging
+import os
+import sys
+import traceback
 from typing import List
 
 

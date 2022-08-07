@@ -3,9 +3,11 @@ Created on March 3, 2018
 Author: Andrew Abi-Mansour
 """
 
-import pygran_sim as simulation
-from pygran_params import organic
 import os
+
+from pygran_params import organic
+
+import pygran_sim as simulation
 
 
 def test_run():

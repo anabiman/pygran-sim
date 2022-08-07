@@ -43,15 +43,17 @@ See the README file in the top-level LAMMPS directory.
 
 """
 
-import sys
 import ctypes
-import numpy
-import os
 import glob
-import sys
-from pygran_sim.tools import find, dictToTuple
 import itertools
 import logging
+import os
+import sys
+
+import numpy
+
+from pygran_sim.tools import dictToTuple, find
+
 from ..api import EngineAPI
 
 try:
@@ -139,7 +141,7 @@ class LiggghtsAPI(EngineAPI):
         """Initialize some settings and specifications"""
 
         if "print" not in pargs:
-            pargs["print"] = (10 ** 4, "time", "dt", "atoms")
+            pargs["print"] = (10**4, "time", "dt", "atoms")
 
         pargs["units"] = pargs.get("units", "si")
         pargs["dim"] = pargs.get("dim", 3)
@@ -461,8 +463,8 @@ class LiggghtsAPI(EngineAPI):
                 if not self.rank:
                     logging.info("Setting up particles for group{id}".format(**ss))
 
-                randName = numpy.random.randint(10 ** 5, 10 ** 8)
-                pddName = "pdd" + "{}".format(numpy.random.randint(10 ** 5, 10 ** 8))
+                randName = numpy.random.randint(10**5, 10**8)
+                pddName = "pdd" + "{}".format(numpy.random.randint(10**5, 10**8))
 
                 if "vol_lim" not in ss:
                     ss["vol_lim"] = 1e-20
@@ -653,7 +655,7 @@ class LiggghtsAPI(EngineAPI):
             seed = RandPrime().gen()
             name = numpy.random.randint(0, 1e8)
 
-            randName = "insert" + "{}".format(numpy.random.randint(0, 10 ** 6))
+            randName = "insert" + "{}".format(numpy.random.randint(0, 10**6))
             self.command(
                 "region {} ".format(name)
                 + ("{} " * len(region)).format(*region)
@@ -804,7 +806,7 @@ class LiggghtsAPI(EngineAPI):
         @args: keywords specific to LIGGGHTS's move/mesh command: https://www.cfdem.com/media/DEM/docu/fix_move_mesh.html
         """
 
-        randName = "moveMesh" + str(numpy.random.randint(10 ** 5, 10 ** 8))
+        randName = "moveMesh" + str(numpy.random.randint(10**5, 10**8))
 
         args = dictToTuple(**args)
 
@@ -1170,7 +1172,7 @@ class LiggghtsAPI(EngineAPI):
                 # self.createGroup(*('spheres type', (' {}' * len(spheres)).format(*spheres)))
 
                 for sphere in spheres:
-                    name = "sphere_" + str(numpy.random.randint(0, 10 ** 6))
+                    name = "sphere_" + str(numpy.random.randint(0, 10**6))
                     if not itype:
                         self.command(
                             "fix {} group{} nve/sphere".format(name, int(sphere[0]) - 1)
@@ -1198,7 +1200,7 @@ class LiggghtsAPI(EngineAPI):
                         ms = False
 
                 if ms:
-                    name = "multisphere_" + str(numpy.random.randint(0, 10 ** 6))
+                    name = "multisphere_" + str(numpy.random.randint(0, 10**6))
                     self.command(
                         "fix {} group{} multisphere".format(name, int(multi[0]) - 1)
                     )

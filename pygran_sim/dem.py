@@ -35,14 +35,15 @@ except Exception:
     MPI = None
 
 import importlib
-from datetime import datetime
-import os, sys
-from .tools import _setConfig
-import shutil
 import logging
+import os
+import shutil
+import sys
 import warnings
+from datetime import datetime
 
 from . import __version__
+from .tools import _setConfig
 
 __all__ = ["DEM"]
 

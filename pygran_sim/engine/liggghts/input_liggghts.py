@@ -29,9 +29,10 @@ If not, see http://www.gnu.org/licenses . See also top-level README
 and LICENSE files.
 """
 
+import math
+
 from pygran_sim.base import ProtoInput
 from pygran_sim.tools import pygranToLIGGGHTS
-import math
 
 
 def template_tablet(nspheres, radius, length):

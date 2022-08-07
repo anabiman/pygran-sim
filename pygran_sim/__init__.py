@@ -34,12 +34,12 @@ __version__ = versions["version"]
 __git_revision__ = versions["full-revisionid"]
 del get_versions, versions
 
+import glob
+import os
+import pathlib
+
 from . import engine
 from .dem import *
-
-import glob
-import pathlib
-import os
 
 
 class _findEngines:
