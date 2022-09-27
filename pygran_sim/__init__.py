@@ -40,8 +40,7 @@ import pathlib
 
 from . import engine
 from .dem import *
-from .engine.simple.input_simple import (HertzMindlin, SpringDashpot,
-                                         ThorntonNing)
+from .engine.simple.input_simple import HertzMindlin, SpringDashpot, ThorntonNing
 
 
 class _findEngines:
