@@ -54,7 +54,7 @@ def test_run():
                 "file": os.path.join(
                     "pygran_sim",
                     "tests",
-                    "LIGGGHTS",
+                    "liggghts",
                     "multisphere",
                     "mesh",
                     "tumbler.stl",

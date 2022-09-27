@@ -37,7 +37,7 @@ def test_run():
                 "file": os.path.join(
                     "pygran_sim",
                     "tests",
-                    "LIGGGHTS",
+                    "liggghts",
                     "compaction",
                     "mesh",
                     "square.stl",
