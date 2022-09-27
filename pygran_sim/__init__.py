@@ -40,12 +40,9 @@ import pathlib
 
 from . import engine
 from .dem import *
+from .engine.simple.input_simple import (HertzMindlin, SpringDashpot,
+                                         ThorntonNing)
 
-from .engine.simple.input_simple import (
-    HertzMindlin,
-    ThorntonNing,
-    SpringDashpot,
-)
 
 class _findEngines:
     """Any engine module *must* follow the naming convention: engine_foo.py
