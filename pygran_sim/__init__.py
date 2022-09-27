@@ -41,6 +41,11 @@ import pathlib
 from . import engine
 from .dem import *
 
+from .engine.simple.input_simple import (
+    HertzMindlin,
+    ThorntonNing,
+    SpringDashpot,
+)
 
 class _findEngines:
     """Any engine module *must* follow the naming convention: engine_foo.py
@@ -60,3 +65,14 @@ class _findEngines:
 
 
 engines = _findEngines()
+
+# for legacy/old version compatible API
+models = type(
+    "contact_models",
+    (),
+    {
+        "HertzMindlin": HertzMindlin,
+        "ThorntonNing": ThorntonNing,
+        "SpringDashpot": SpringDashpot,
+    },
+)
